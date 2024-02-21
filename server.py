@@ -130,11 +130,11 @@ class Race:
 
     @staticmethod
     def extract_course(ping_data: dict):
-        return int(self.extract_point(point_data).get("course", 0))
+        return int(Race.extract_point(ping_data).get("course", 0))
 
     @staticmethod
     def extract_location(ping_data: dict):
-        point = self.extract_point(point_data)
+        point = Race.extract_point(ping_data)
         return (point.get("latitude", 0), point.get("longitude", 0))
 
     @property
@@ -150,11 +150,15 @@ class Race:
         )
 
     def _calculate_pace(self):
-        return (
+        pace = (
             (self.elapsed_time.total_seconds() / 60.0) / self.last_mile_mark
             if self.last_mile_mark
             else 10
         )
+        if 5 < pace < 35:
+            return pace
+        else:
+            return 10
 
     def save(self):
         with open(self.data_store, "w") as f:
@@ -174,7 +178,10 @@ class Race:
         # Don't update if latest point is older than current point
         if self.last_timestamp > (new_timestamp := self.extract_timestamp(ping_data)):
             return
+        elif new_timestamp < self.start_time:
+            return
         self.pings += 1
+        self.last_ping = ping_data
         self.last_timestamp = new_timestamp
         self.course = self.extract_course(ping_data)
         self.last_location = self.extract_location(ping_data)
