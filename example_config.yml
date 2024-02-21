@@ -1,0 +1,5 @@
+start_time: '2024-02-19T08:00:00' 
+api_token: XXXXXXXX
+data_store: /proj/ultra-tracker/data_store.json
+caltopo_map_id: XXXXX
+caltopo_cookies: XXXXXXXXXXXXXX
