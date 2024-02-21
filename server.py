@@ -2,9 +2,7 @@
 
 
 from functools import partial
-from geopy.distance import geodesic
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from scipy.spatial import cKDTree
 from scipy.stats import norm
 from urllib.parse import urlencode
 from urllib.parse import urlparse, parse_qs
@@ -47,18 +45,18 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
             # Send a 200 OK response
             self.send_response(200)
             # Set the Content-type header
-            self.send_header('Content-type', 'text/html')
+            self.send_header("Content-type", "text/html")
             # End the headers
             self.end_headers()
             # Send the HTML content
-            html_content = "<html><body><h1>OK</h1></body></html>"
-            self.wfile.write(html_content.encode('utf-8'))
+            html_content = "<html><body>OK</body></html>"
+            self.wfile.write(html_content.encode("utf-8"))
         except Exception as e:
             # Handle exceptions or errors
             self.send_response(500)
-            self.send_header('Content-type', 'text/plain')
+            self.send_header("Content-type", "text/plain")
             self.end_headers()
-            self.wfile.write(f"Internal Server Error: {str(e)}".encode('utf-8'))
+            self.wfile.write(f"Internal Server Error: {str(e)}".encode("utf-8"))
 
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
@@ -93,6 +91,7 @@ def get_config_data(file_path):
 # TODO do getter and setter
 # TODO determine route, tracker point automatically
 
+
 class Race:
     def __init__(
         self,
@@ -104,79 +103,63 @@ class Race:
         self.caltopo_map = CaltopoMap(caltopo_map_id, caltopo_cookies)
         self.total_distance = self.caltopo_map.distances[-1]
         self.start_time = start_time
+        self.last_mile_mark = 0
         self.pace = 10
         self.pings = 0
         self.last_ping = {}
         self.last_timestamp = datetime.datetime.fromtimestamp(0)
-        self.last_location = (0,0)
+        self.elapsed_time = datetime.datetime.fromtimestamp(0)
+        self.estimated_finish_time = datetime.datetime.fromtimestamp(0)
+        self.estimated_finish_date = datetime.datetime.fromtimestamp(0)
+        self.last_location = (0, 0)
         self.course = 0
         self.data_store = data_store
         self.restore()
 
+    @staticmethod
+    def extract_timestamp(ping_data: dict):
+        ts = ping_data.get("Events", [{}])[0].get("timeStamp", "0")
+        try:
+            return datetime.datetime.fromtimestamp(ts)
+        except ValueError:
+            return datetime.datetime.fromtimestamp(ts // 1000)
 
-    @property
-    def estimated_finish_date(self):
-        return self.start_time + self.estimated_finish_time
+    @staticmethod
+    def extract_point(ping_data: dict):
+        return ping_data.get("Events", [{}])[0].get("point", {})
 
-    @property
-    def estimated_finish_time(self):
-        return datetime.timedelta(minutes=self.pace * self.total_distance)
+    @staticmethod
+    def extract_course(ping_data: dict):
+        return int(self.extract_point(point_data).get("course", 0))
 
-    @property
-    def elapsed_time(self):
-        if self.last_timestamp:
-            return self.last_timestamp - self.start_time
-        return self.start_time - self.start_time
+    @staticmethod
+    def extract_location(ping_data: dict):
+        point = self.extract_point(point_data)
+        return (point.get("latitude", 0), point.get("longitude", 0))
 
     @property
     def stats(self):
         return {"pace": self.pace, "pings": self.pings, "last_ping": self.last_ping}
 
-    @property
-    def last_mile_mark(self):
-        return self._last_mile_mark
-    
-    @last_mile_mark.setter
-    def last_mile_mark(self, value):
-        self._last_mile_mark = value
-
-
     def _calculate_last_mile_mark(self):
-        matched_indices = find_nearest_points(self.last_location, self.caltopo_map.route, 5)
+        _, matched_indices = self.caltopo_map.kdtree.query(self.last_location, k=5)
         return calculate_most_probable_mile_mark(
             [self.caltopo_map.distances[i] for i in matched_indices],
             self.elapsed_time.total_seconds() / 60,
             self.pace,
         )
 
+    def _calculate_pace(self):
+        return (
+            (self.elapsed_time.total_seconds() / 60.0) / self.last_mile_mark
+            if self.last_mile_mark
+            else 10
+        )
+
     def save(self):
         with open(self.data_store, "w") as f:
             f.write(json.dumps(self.stats))
         return
-
-    def update(self, ping_data):
-        # TODO dont update if latest point is older than current point
-        self.last_ping = ping_data
-        self.pings += 1
-
-        previous_timestamp = self.last_timestamp
-
-        ts = self.last_ping.get("Events", [{}])[0].get("timeStamp", "0")
-        try:
-            self.last_timestamp = datetime.datetime.fromtimestamp(ts)
-        except ValueError:
-            self.last_timestamp = datetime.datetime.fromtimestamp(ts // 1000)
-
-        if previous_timestamp > self.last_timestamp:
-            return
-
-        point = self.last_ping.get("Events", [{}])[0].get("point", {})
-        self.course = int(point.get("course", 0))
-        self.last_location = (point.get("latitude", 0), point.get("longitude", 0))
-        self.last_mile_mark = self._calculate_last_mile_mark()
-        self.pace = (self.elapsed_time.total_seconds() / 60.0) / self.last_mile_mark if self.last_mile_mark else 10
-        self.save()
-        self.post_to_caltopo()
 
     def restore(self):
         if os.path.exists(self.data_store):
@@ -186,6 +169,22 @@ class Race:
                 self.pings = data.get("pings", 0)
                 self.last_ping = data.get("last_ping", {})
         return
+
+    def update(self, ping_data):
+        # Don't update if latest point is older than current point
+        if self.last_timestamp > (new_timestamp := self.extract_timestamp(ping_data)):
+            return
+        self.pings += 1
+        self.last_timestamp = new_timestamp
+        self.course = self.extract_course(ping_data)
+        self.last_location = self.extract_location(ping_data)
+        self.elapsed_time = self.last_timestamp - self.start_time
+        self.last_mile_mark = self._calculate_last_mile_mark()
+        self.pace = self._calculate_pace()
+        self.estimated_finish_time = datetime.timedelta(minutes=self.pace * self.total_distance)
+        self.estimated_finish_date = self.start_time + self.estimated_finish_time
+        self.save()
+        self.post_to_caltopo()  # TODO
 
     def post_to_caltopo(self):
         url = f"https://caltopo.com/api/v1/map/{self.caltopo_map.map_id}/Marker/{self.caltopo_map.marker_id}"
@@ -242,44 +241,6 @@ def convert_decimal_pace_to_pretty_format(decimal_pace):
     seconds, _ = divmod(remainder, 1)
     pretty_format = f"{minutes}'{seconds:02d}\""
     return pretty_format
-
-
-def preprocess_gpx(gpx_file):
-    # Load GPX file and extract route coordinates
-    gpx = gpxpy.parse(open(gpx_file, "r"))
-    route = [
-        (point.latitude, point.longitude)
-        for track in gpx.tracks
-        for segment in track.segments
-        for point in segment.points
-    ]
-
-    cumulative_distance = 0
-    prev_point = None
-    cumulative_distances_array = []
-
-    for track in gpx.tracks:
-        for segment in track.segments:
-            for point in segment.points:
-                if prev_point is not None:
-                    geo = geodesic(
-                        (prev_point.latitude, prev_point.longitude, prev_point.elevation),
-                        (point.latitude, point.longitude, point.elevation),
-                    )
-                    distance = geo.miles
-                    cumulative_distance += distance
-                cumulative_distances_array.append(cumulative_distance)
-                prev_point = point
-
-    return np.array(route), cumulative_distances_array
-
-
-def find_nearest_points(last_location, route, num_points):
-    # Initialize KDTree for efficient nearest neighbor search
-    kdtree = cKDTree(route)
-    # Find the nearest point on the route to the last tracker location
-    _, idxs = kdtree.query(last_location, k=num_points)
-    return idxs
 
 
 def calculate_most_probable_mile_mark(mile_marks, elapsed_time, average_pace):

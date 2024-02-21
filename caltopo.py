@@ -2,9 +2,11 @@
 
 import requests
 
+from scipy.spatial import KDTree
 from geopy.distance import geodesic
 
 import numpy as np
+
 
 class CaltopoMap:
     def __init__(self, map_id, cookie):
@@ -16,7 +18,8 @@ class CaltopoMap:
         self.route = []
         self.distances = []
         self.get_map_data()
-        
+        self.kdtree = KDTree(self.route)
+
     def get(self, url):
         headers = {
             "Accept": "*/*",
@@ -27,7 +30,6 @@ class CaltopoMap:
         }
         response = requests.get(url, headers=headers, verify=True)
         return response.json()
-
 
     def convert_route(self, route_data):
         cumulative_distance = 0
@@ -50,17 +52,23 @@ class CaltopoMap:
     def get_map_data(self):
         map_data = self.get(f"https://caltopo.com/api/v1/map/{self.map_id}/since/0")
         try:
-            features = map_data['result']['state']['features']
+            features = map_data["result"]["state"]["features"]
         except KeyError:
-            return # TODO
+            return  # TODO
         for feature in features:
-            if feature.get('properties', {}).get('class') == 'Folder' and feature.get('properties', {}).get('title') == 'Live Tracking':
-                self.tracking_folder_id = feature['id']
-            elif feature.get('properties', {}).get('class') == 'Shape' and feature.get('properties', {}).get('title') == 'Route':
-                self.route_id = feature['id']
-                self.route, self.distances = self.convert_route(feature['geometry']['coordinates'])
-            elif feature.get('properties', {}).get('class') == 'Marker' and feature.get('properties', {}).get('title') == 'Aaron':
-                self.marker_id = feature['id']
-
-
-
+            if (
+                feature.get("properties", {}).get("class") == "Folder"
+                and feature.get("properties", {}).get("title") == "Live Tracking"
+            ):
+                self.tracking_folder_id = feature["id"]
+            elif (
+                feature.get("properties", {}).get("class") == "Shape"
+                and feature.get("properties", {}).get("title") == "Route"
+            ):
+                self.route_id = feature["id"]
+                self.route, self.distances = self.convert_route(feature["geometry"]["coordinates"])
+            elif (
+                feature.get("properties", {}).get("class") == "Marker"
+                and feature.get("properties", {}).get("title") == "Aaron"
+            ):
+                self.marker_id = feature["id"]
