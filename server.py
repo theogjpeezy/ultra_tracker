@@ -42,6 +42,24 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         self.race = race
         super().__init__(*args, **kwargs)
 
+    def do_GET(self):
+        try:
+            # Send a 200 OK response
+            self.send_response(200)
+            # Set the Content-type header
+            self.send_header('Content-type', 'text/html')
+            # End the headers
+            self.end_headers()
+            # Send the HTML content
+            html_content = "<html><body><h1>OK</h1></body></html>"
+            self.wfile.write(html_content.encode('utf-8'))
+        except Exception as e:
+            # Handle exceptions or errors
+            self.send_response(500)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(f"Internal Server Error: {str(e)}".encode('utf-8'))
+
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
         post_data = self.rfile.read(content_length).decode("utf-8")
