@@ -1,0 +1,6 @@
+geopy
+gpxpy
+numpy
+pyyaml
+requests
+scipy

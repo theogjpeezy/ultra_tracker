@@ -1,0 +1,314 @@
+#!/usr/bin/env python3
+
+
+from functools import partial
+from geopy.distance import geodesic
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from scipy.spatial import cKDTree
+from scipy.stats import norm
+from urllib.parse import urlencode
+from urllib.parse import urlparse, parse_qs
+import argparse
+import datetime
+import gpxpy
+import json
+import numpy as np
+import os
+import requests
+import yaml
+
+from caltopo import CaltopoMap
+
+
+def parse_args() -> argparse.Namespace:
+    """
+    Parses the arguments from the command line.
+
+    :return argparse.Namespace: The namespace of the arguments that were parsed.
+    """
+    p = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="This is a description of my module.",
+    )
+    p.add_argument(
+        "-c", required=True, type=str, dest="config", help="The config file for the event."
+    )
+    return p.parse_args()
+
+
+class GarminTrackHandler(BaseHTTPRequestHandler):
+    def __init__(self, api_token, race, *args, **kwargs):
+        self.api_token = api_token
+        self.race = race
+        super().__init__(*args, **kwargs)
+
+    def do_POST(self):
+        content_length = int(self.headers["Content-Length"])
+        post_data = self.rfile.read(content_length).decode("utf-8")
+        if self.headers.get("x-outbound-auth-token") != self.api_token:
+            print("Invalid or missing auth token")
+            return
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.race.update(json.loads(post_data))
+        print(
+            f"mile mark {self.race.last_mile_mark} pace: {self.race.pace} elapsed_time: {self.race.elapsed_time}"
+        )
+
+
+def get_config_data(file_path):
+    try:
+        with open(file_path, "r") as file:
+            yaml_content = yaml.safe_load(file)
+        return yaml_content
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+        return None
+    except yaml.YAMLError as e:
+        print(f"Error: YAML parsing error in '{file_path}': {e}")
+        return None
+
+
+# TODO handle time zones
+# TODO handle start/finish
+# TODO do getter and setter
+# TODO determine route, tracker point automatically
+
+class Race:
+    def __init__(
+        self,
+        start_time,
+        data_store,
+        caltopo_map_id,
+        caltopo_cookies,
+    ):
+        self.caltopo_map = CaltopoMap(caltopo_map_id, caltopo_cookies)
+        self.total_distance = self.caltopo_map.distances[-1]
+        self.start_time = start_time
+        self.pace = 10
+        self.pings = 0
+        self.last_ping = {}
+        self.last_timestamp = datetime.datetime.fromtimestamp(0)
+        self.last_location = (0,0)
+        self.course = 0
+        self.data_store = data_store
+        self.restore()
+
+
+    @property
+    def estimated_finish_date(self):
+        return self.start_time + self.estimated_finish_time
+
+    @property
+    def estimated_finish_time(self):
+        return datetime.timedelta(minutes=self.pace * self.total_distance)
+
+    @property
+    def elapsed_time(self):
+        if self.last_timestamp:
+            return self.last_timestamp - self.start_time
+        return self.start_time - self.start_time
+
+    @property
+    def stats(self):
+        return {"pace": self.pace, "pings": self.pings, "last_ping": self.last_ping}
+
+    @property
+    def last_mile_mark(self):
+        return self._last_mile_mark
+    
+    @last_mile_mark.setter
+    def last_mile_mark(self, value):
+        self._last_mile_mark = value
+
+
+    def _calculate_last_mile_mark(self):
+        matched_indices = find_nearest_points(self.last_location, self.caltopo_map.route, 5)
+        return calculate_most_probable_mile_mark(
+            [self.caltopo_map.distances[i] for i in matched_indices],
+            self.elapsed_time.total_seconds() / 60,
+            self.pace,
+        )
+
+    def save(self):
+        with open(self.data_store, "w") as f:
+            f.write(json.dumps(self.stats))
+        return
+
+    def update(self, ping_data):
+        # TODO dont update if latest point is older than current point
+        self.last_ping = ping_data
+        self.pings += 1
+
+        previous_timestamp = self.last_timestamp
+
+        ts = self.last_ping.get("Events", [{}])[0].get("timeStamp", "0")
+        try:
+            self.last_timestamp = datetime.datetime.fromtimestamp(ts)
+        except ValueError:
+            self.last_timestamp = datetime.datetime.fromtimestamp(ts // 1000)
+
+        if previous_timestamp > self.last_timestamp:
+            return
+
+        point = self.last_ping.get("Events", [{}])[0].get("point", {})
+        self.course = int(point.get("course", 0))
+        self.last_location = (point.get("latitude", 0), point.get("longitude", 0))
+        self.last_mile_mark = self._calculate_last_mile_mark()
+        self.pace = (self.elapsed_time.total_seconds() / 60.0) / self.last_mile_mark if self.last_mile_mark else 10
+        self.save()
+        self.post_to_caltopo()
+
+    def restore(self):
+        if os.path.exists(self.data_store):
+            with open(self.data_store, "r") as f:
+                data = json.load(f)
+                self.pace = data.get("pace", 0)
+                self.pings = data.get("pings", 0)
+                self.last_ping = data.get("last_ping", {})
+        return
+
+    def post_to_caltopo(self):
+        url = f"https://caltopo.com/api/v1/map/{self.caltopo_map.map_id}/Marker/{self.caltopo_map.marker_id}"
+        headers = {
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Connection": "keep-alive",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Cookie": self.caltopo_map.cookie,
+        }
+        payload = {
+            "json": {
+                "type": "Feature",
+                "id": self.caltopo_map.marker_id,
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [self.last_location[1], self.last_location[0]],
+                },
+                "properties": {
+                    "title": "Aaron",
+                    "description": (
+                        f"last update: {self.last_timestamp.strftime('%m-%d %H:%M')}\n"
+                        f"mile mark: {round(self.last_mile_mark, 1)}\n"
+                        f"elapsed time: {format_duration(self.elapsed_time)}\n"
+                        f"avg pace: {convert_decimal_pace_to_pretty_format(self.pace)}\n"
+                        f"pings: {self.pings}\n"
+                        f"EFD: {self.estimated_finish_date.strftime('%m-%d %H:%M')}\n"
+                        f"EFT: {format_duration(self.estimated_finish_time)}"
+                    ),
+                    "folderId": self.caltopo_map.tracking_folder_id,
+                    "marker-size": "1.5",
+                    "marker-symbol": "a:4",
+                    "marker-color": "A200FF",
+                    "marker-rotation": self.course,
+                    "class": "Marker",
+                },
+            }
+        }
+        response = requests.post(url, headers=headers, data=urlencode(payload), verify=True)
+        return
+
+
+def format_duration(duration):
+    total_hours = duration.total_seconds() / 3600
+    hours, remainder = divmod(total_hours, 1)
+    minutes, remainder = divmod(remainder * 60, 1)
+    seconds, _ = divmod(remainder * 60, 1)
+    return f"{int(hours)}:{int(minutes):02}'{int(seconds):02}\""
+
+
+def convert_decimal_pace_to_pretty_format(decimal_pace):
+    total_seconds = int(decimal_pace * 60)  # Convert pace to total seconds
+    minutes, remainder = divmod(total_seconds, 60)
+    seconds, _ = divmod(remainder, 1)
+    pretty_format = f"{minutes}'{seconds:02d}\""
+    return pretty_format
+
+
+def preprocess_gpx(gpx_file):
+    # Load GPX file and extract route coordinates
+    gpx = gpxpy.parse(open(gpx_file, "r"))
+    route = [
+        (point.latitude, point.longitude)
+        for track in gpx.tracks
+        for segment in track.segments
+        for point in segment.points
+    ]
+
+    cumulative_distance = 0
+    prev_point = None
+    cumulative_distances_array = []
+
+    for track in gpx.tracks:
+        for segment in track.segments:
+            for point in segment.points:
+                if prev_point is not None:
+                    geo = geodesic(
+                        (prev_point.latitude, prev_point.longitude, prev_point.elevation),
+                        (point.latitude, point.longitude, point.elevation),
+                    )
+                    distance = geo.miles
+                    cumulative_distance += distance
+                cumulative_distances_array.append(cumulative_distance)
+                prev_point = point
+
+    return np.array(route), cumulative_distances_array
+
+
+def find_nearest_points(last_location, route, num_points):
+    # Initialize KDTree for efficient nearest neighbor search
+    kdtree = cKDTree(route)
+    # Find the nearest point on the route to the last tracker location
+    _, idxs = kdtree.query(last_location, k=num_points)
+    return idxs
+
+
+def calculate_most_probable_mile_mark(mile_marks, elapsed_time, average_pace):
+    # Constants
+    if not average_pace:
+        average_speed = 1 / 10
+    else:
+        average_speed = 1 / average_pace  # Speed in miles per minute
+    # Calculate expected distance based on elapsed time and average speed
+    expected_distance = elapsed_time * average_speed
+    # Calculate standard deviation based on average pace
+    standard_deviation = average_pace / 3  # Adjust for variability in pace
+    # Calculate probabilities for each mile mark
+    probabilities = norm.pdf(mile_marks, loc=expected_distance, scale=standard_deviation)
+    # Find the mile mark with the highest probability
+    most_probable_mile_mark = mile_marks[np.argmax(probabilities)]
+    return most_probable_mile_mark
+
+
+def main():
+    # Read in the config file.
+    args = parse_args()
+    config_data = get_config_data(args.config)
+    # Fail fast if these aren't defined.
+    api_token = config_data["api_token"]
+    start_time = datetime.datetime.strptime(config_data["start_time"], "%Y-%m-%dT%H:%M:%S")
+    data_store = config_data["data_store"]
+    caltopo_map_id = config_data["caltopo_map_id"]
+    caltopo_cookies = config_data["caltopo_cookies"]
+    race = Race(
+        start_time,
+        data_store,
+        caltopo_map_id,
+        caltopo_cookies,
+    )
+
+    server_address = ("", 80)
+
+    # We "partially apply" the first three arguments to the ExampleHandler
+    handler = partial(GarminTrackHandler, api_token, race)
+    # .. then pass it to HTTPHandler as normal:
+    server = HTTPServer(server_address, handler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        exit(0)
+
+
+if __name__ == "__main__":
+    main()
