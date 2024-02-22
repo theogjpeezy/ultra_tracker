@@ -99,6 +99,8 @@ class Race:
         caltopo_map_id,
         caltopo_cookies,
     ):
+        self.started = False
+        self.finished = False
         self.caltopo_map = CaltopoMap(caltopo_map_id, caltopo_cookies)
         self.total_distance = self.caltopo_map.distances[-1]
         self.start_time = start_time
@@ -136,19 +138,15 @@ class Race:
         point = Race.extract_point(ping_data)
         return (point.get("latitude", 0), point.get("longitude", 0))
 
-    @property
-    def started(self):
+    def _check_if_started(self):
         if self.start_time > datetime.datetime.now():
-            return False
-        return abs(self.total_distance - self.last_mile_mark) > 0.25
-        #return is_within_distance(self.last_location, self.caltopo_map.finish_location, 0.25)
+            self.started = False
+        self.started = self.last_mile_mark > 0.11
         
-    @property
-    def finished(self):
+    def _check_if_finished(self):
         if not self.started:
-            return False
-        return abs(self.total_distance - self.last_mile_mark) < 0.25
-        #return is_within_distance(self.last_mile_mark, self.caltopo_map.finish_location, 0.25)
+            self.finished = False
+        self.finished = abs(self.total_distance - self.last_mile_mark) < 0.11
 
     @property
     def in_progress(self):
@@ -231,7 +229,7 @@ class Race:
         self.elapsed_time = self.last_timestamp - self.start_time
         self.last_mile_mark = self._calculate_last_mile_mark()
         if not self.in_progress:
-            return
+            return # TODO have to do one last update to finish
         self.pace = self._calculate_pace()
         self.estimated_finish_time = datetime.timedelta(minutes=self.pace * self.total_distance)
         self.estimated_finish_date = self.start_time + self.estimated_finish_time
@@ -239,6 +237,8 @@ class Race:
         self.caltopo_map.move_marker(
             self.last_location, self.last_timestamp, self.course, self.marker_description
         )
+        self._check_if_finished()
+        self._check_if_started()
 
 
 def format_duration(duration):
