@@ -12,6 +12,7 @@ import numpy as np
 import os
 import requests
 import yaml
+from jinja2 import Environment, FileSystemLoader
 
 from caltopo import CaltopoMap
 from service_logging import logger
@@ -47,9 +48,19 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "text/html")
             # End the headers
             self.end_headers()
-            # Send the HTML content
-            html_content = "<html><body>OK</body></html>"
-            self.wfile.write(html_content.encode("utf-8"))
+
+            # Load the Jinja environment and specify the template directory
+            env = Environment(loader=FileSystemLoader('.'))
+            template = env.get_template('race_stats.html')
+
+            # Render the template with the provided data
+            rendered_html = template.render(**race.html_stats)
+
+            # Send the HTML response
+            self.wfile.write(rendered_html.encode('utf-8'))
+
+
+
         except Exception as e:
             # Handle exceptions or errors
             self.send_response(500)
@@ -137,6 +148,10 @@ class Race:
 
     @property
     def stats(self):
+        return {"pace": self.pace, "mile_mark": self.last_mile_mark}
+
+    @property
+    def html_stats(self):
         return {"pace": self.pace, "pings": self.pings, "last_ping": self.last_ping}
 
     @property
