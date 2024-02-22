@@ -53,7 +53,7 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         # Load the Jinja environment and specify the template directory
-        env = Environment(loader=FileSystemLoader('/proj/ultra_tracker/'))
+        env = Environment(loader=FileSystemLoader('/proj/ultra_tracker/')) # TODO
         template = env.get_template('race_stats.html')
 
         # Render the template with the provided data
@@ -142,11 +142,11 @@ class Race:
 
     @property
     def stats(self):
-        return {"pace": self.pace, "mile_mark": self.last_mile_mark}
+        return {"pace": self.pace, "pings": self.pings, "last_ping": self.last_ping}
 
     @property
     def html_stats(self):
-        return {"pace": self.pace, "pings": self.pings, "last_ping": self.last_ping}
+        return {"pace": self.pace, "mile_mark": self.last_mile_mark}
 
     @property
     def marker_description(self):
