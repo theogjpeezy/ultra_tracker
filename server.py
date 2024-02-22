@@ -88,8 +88,7 @@ def get_config_data(file_path):
 
 # TODO handle time zones
 # TODO handle start/finish
-# TODO do getter and setter
-# TODO determine route, tracker point automatically
+# TODO can we get rid of start time?
 
 
 class Race:
