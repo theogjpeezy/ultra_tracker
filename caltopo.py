@@ -3,6 +3,7 @@
 
 from geopy.distance import geodesic
 from scipy.spatial import KDTree
+from urllib.parse import urlencode
 import numpy as np
 import requests
 

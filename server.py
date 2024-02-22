@@ -4,8 +4,6 @@
 from functools import partial
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from scipy.stats import norm
-from urllib.parse import urlencode
-from urllib.parse import urlparse, parse_qs
 import argparse
 import datetime
 import gpxpy
