@@ -113,30 +113,29 @@ class CaltopoMap:
         logger.debug(f"marker move result {result.text}")
         return result
 
+
 def haversine_distance(lat_lon1, lat_lon2):
     # Radius of the Earth in miles
     R = 3959.0
 
     lat1, lon1 = lat_lon1
     lat2, lon2 = lat_lon2
-    
+
     # Convert latitude and longitude from degrees to radians
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-    
+
     # Calculate the differences in coordinates
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-    
+
     # Haversine formula
-    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    
+
     # Distance in miles
     return R * c
-
 
 
 def is_within_distance(lat_lon1, lat_lon2, max_distance):
     distance = haversine_distance(lat_lon1, lat_lon2)
     return distance <= max_distance
-

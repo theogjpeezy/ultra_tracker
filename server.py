@@ -87,8 +87,6 @@ def get_config_data(file_path):
 
 
 # TODO handle time zones
-# TODO handle start/finish
-# TODO can we get rid of start time?
 
 
 class Race:
@@ -142,7 +140,7 @@ class Race:
         if self.start_time > datetime.datetime.now():
             self.started = False
         self.started = self.last_mile_mark > 0.11
-        
+
     def _check_if_finished(self):
         if not self.started:
             self.finished = False
@@ -228,8 +226,9 @@ class Race:
         self.last_location = self.extract_location(ping_data)
         self.elapsed_time = self.last_timestamp - self.start_time
         self.last_mile_mark = self._calculate_last_mile_mark()
+        self._check_if_started()
         if not self.in_progress:
-            return # TODO have to do one last update to finish
+            return
         self.pace = self._calculate_pace()
         self.estimated_finish_time = datetime.timedelta(minutes=self.pace * self.total_distance)
         self.estimated_finish_date = self.start_time + self.estimated_finish_time
@@ -238,7 +237,6 @@ class Race:
             self.last_location, self.last_timestamp, self.course, self.marker_description
         )
         self._check_if_finished()
-        self._check_if_started()
 
 
 def format_duration(duration):
@@ -272,10 +270,6 @@ def calculate_most_probable_mile_mark(mile_marks, elapsed_time, average_pace):
     # Find the mile mark with the highest probability
     most_probable_mile_mark = mile_marks[np.argmax(probabilities)]
     return most_probable_mile_mark
-
-
-
-
 
 
 def main():
