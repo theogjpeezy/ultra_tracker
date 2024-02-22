@@ -150,15 +150,11 @@ class Race:
         )
 
     def _calculate_pace(self):
-        pace = (
+        return (
             (self.elapsed_time.total_seconds() / 60.0) / self.last_mile_mark
             if self.last_mile_mark
             else 10
         )
-        if 5 < pace < 35:
-            return pace
-        else:
-            return 10
 
     def save(self):
         with open(self.data_store, "w") as f:
@@ -169,7 +165,7 @@ class Race:
         if os.path.exists(self.data_store):
             with open(self.data_store, "r") as f:
                 data = json.load(f)
-                self.pace = data.get("pace", 0)
+                self.pace = data.get("pace", 10)
                 self.pings = data.get("pings", 0)
                 self.last_ping = data.get("last_ping", {})
         return
@@ -214,7 +210,7 @@ class Race:
                     "title": "Aaron",
                     "description": (
                         f"last update: {self.last_timestamp.strftime('%m-%d %H:%M')}\n"
-                        f"mile mark: {round(self.last_mile_mark, 1)}\n"
+                        f"mile mark: {round(self.last_mile_mark, 2)}\n"
                         f"elapsed time: {format_duration(self.elapsed_time)}\n"
                         f"avg pace: {convert_decimal_pace_to_pretty_format(self.pace)}\n"
                         f"pings: {self.pings}\n"
