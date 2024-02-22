@@ -41,32 +41,26 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
-        try:
-            # Send a 200 OK response
-            self.send_response(200)
-            # Set the Content-type header
-            self.send_header("Content-type", "text/html")
-            # End the headers
-            self.end_headers()
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
 
-            # Load the Jinja environment and specify the template directory
-            env = Environment(loader=FileSystemLoader('.'))
-            template = env.get_template('race_stats.html')
+        # Send a 200 OK response
+        self.send_response(200)
+        # Set the Content-type header
+        self.send_header("Content-type", "text/html")
+        # End the headers
+        self.end_headers()
 
-            # Render the template with the provided data
-            rendered_html = template.render(**race.html_stats)
+        # Load the Jinja environment and specify the template directory
+        env = Environment(loader=FileSystemLoader('.'))
+        template = env.get_template('race_stats.html')
 
-            # Send the HTML response
-            self.wfile.write(rendered_html.encode('utf-8'))
+        # Render the template with the provided data
+        rendered_html = template.render(**race.html_stats)
 
-
-
-        except Exception as e:
-            # Handle exceptions or errors
-            self.send_response(500)
-            self.send_header("Content-type", "text/plain")
-            self.end_headers()
-            self.wfile.write(f"Internal Server Error: {str(e)}".encode("utf-8"))
+        # Send the HTML response
+        self.wfile.write(rendered_html.encode('utf-8'))
 
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
