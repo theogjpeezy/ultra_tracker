@@ -41,10 +41,6 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-
         # Send a 200 OK response
         self.send_response(200)
         # Set the Content-type header
@@ -53,14 +49,14 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         # Load the Jinja environment and specify the template directory
-        env = Environment(loader=FileSystemLoader('/proj/ultra_tracker/')) # TODO
-        template = env.get_template('race_stats.html')
+        env = Environment(loader=FileSystemLoader("/proj/ultra_tracker/"))  # TODO
+        template = env.get_template("race_stats.html")
 
         # Render the template with the provided data
         rendered_html = template.render(**self.race.html_stats)
 
         # Send the HTML response
-        self.wfile.write(rendered_html.encode('utf-8'))
+        self.wfile.write(rendered_html.encode("utf-8"))
 
     def do_POST(self):
         content_length = int(self.headers["Content-Length"])
@@ -146,7 +142,15 @@ class Race:
 
     @property
     def html_stats(self):
-        return {"pace": convert_decimal_pace_to_pretty_format(self.pace), "mile_mark": round(self.last_mile_mark,2), "elapsed_time": format_duration(self.elapsed_time), "last_check_in": self.last_timestamp.strftime('%m-%d %H:%M')}
+        return {
+            "avg_pace": convert_decimal_pace_to_pretty_format(self.pace),
+            "mile_mark": round(self.last_mile_mark, 2),
+            "elapsed_time": format_duration(self.elapsed_time),
+            "last_update": self.last_timestamp.strftime("%m-%d %H:%M"),
+            "pings": self.pings,
+            "est_finish_date": self.estimated_finish_date.strftime("%m-%d %H:%M"),
+            "est_finish_time": format_duration(self.estimated_finish_time),
+        }
 
     @property
     def marker_description(self):
@@ -192,10 +196,14 @@ class Race:
     def update(self, ping_data):
         # Don't update if latest point is older than current point
         if self.last_timestamp > (new_timestamp := self.extract_timestamp(ping_data)):
-            logger.info(f'incoming timestamp {new_timestamp} older than last timestamp {self.last_timestamp}')
+            logger.info(
+                f"incoming timestamp {new_timestamp} older than last timestamp {self.last_timestamp}"
+            )
             return
         elif new_timestamp < self.start_time:
-            logger.info(f'incoming timestamp {new_timestamp} before race start time {self.start_time}')
+            logger.info(
+                f"incoming timestamp {new_timestamp} before race start time {self.start_time}"
+            )
             return
         self.pings += 1
         self.last_ping = ping_data

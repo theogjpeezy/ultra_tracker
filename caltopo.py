@@ -55,7 +55,7 @@ class CaltopoMap:
         try:
             features = map_data["result"]["state"]["features"]
         except KeyError:
-            logger.error(f'unable to find features in {map_data}')
+            logger.error(f"unable to find features in {map_data}")
             return
         for feature in features:
             if (
@@ -107,5 +107,5 @@ class CaltopoMap:
             }
         }
         result = requests.post(url, headers=headers, data=urlencode(payload), verify=True)
-        logger.debug(f'marker move result {result.text}')
+        logger.debug(f"marker move result {result.text}")
         return result
