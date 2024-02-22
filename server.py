@@ -14,6 +14,7 @@ import requests
 import yaml
 
 from caltopo import CaltopoMap
+from service_logging import logger
 
 
 def parse_args() -> argparse.Namespace:
@@ -60,13 +61,13 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers["Content-Length"])
         post_data = self.rfile.read(content_length).decode("utf-8")
         if self.headers.get("x-outbound-auth-token") != self.api_token:
-            print("Invalid or missing auth token")
+            logger.critical("Invalid or missing auth token")
             return
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
         self.race.update(json.loads(post_data))
-        print(
+        logger.info(
             f"mile mark {self.race.last_mile_mark} pace: {self.race.pace} elapsed_time: {self.race.elapsed_time}"
         )
 
@@ -77,10 +78,10 @@ def get_config_data(file_path):
             yaml_content = yaml.safe_load(file)
         return yaml_content
     except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found.")
+        logger.error(f"Error: File '{file_path}' not found.")
         return None
     except yaml.YAMLError as e:
-        print(f"Error: YAML parsing error in '{file_path}': {e}")
+        logger.error(f"Error: YAML parsing error in '{file_path}': {e}")
         return None
 
 
@@ -182,8 +183,10 @@ class Race:
     def update(self, ping_data):
         # Don't update if latest point is older than current point
         if self.last_timestamp > (new_timestamp := self.extract_timestamp(ping_data)):
+            logger.info(f'incoming timestamp {new_timestamp} older than last timestamp {self.last_timestamp}')
             return
         elif new_timestamp < self.start_time:
+            logger.info(f'incoming timestamp {new_timestamp} before race start time {self.start_time}')
             return
         self.pings += 1
         self.last_ping = ping_data

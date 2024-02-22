@@ -7,6 +7,8 @@ from urllib.parse import urlencode
 import numpy as np
 import requests
 
+from service_logging import logger
+
 
 class CaltopoMap:
     def __init__(self, map_id, cookie):
@@ -53,7 +55,8 @@ class CaltopoMap:
         try:
             features = map_data["result"]["state"]["features"]
         except KeyError:
-            return  # TODO
+            logger.error(f'unable to find features in {map_data}')
+            return
         for feature in features:
             if (
                 feature.get("properties", {}).get("class") == "Folder"
@@ -103,4 +106,6 @@ class CaltopoMap:
                 },
             }
         }
-        return requests.post(url, headers=headers, data=urlencode(payload), verify=True)
+        result = requests.post(url, headers=headers, data=urlencode(payload), verify=True)
+        logger.debug(f'marker move result {result.text}')
+        return result
