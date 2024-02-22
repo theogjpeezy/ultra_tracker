@@ -146,7 +146,7 @@ class Race:
 
     @property
     def html_stats(self):
-        return {"pace": self.pace, "mile_mark": self.last_mile_mark}
+        return {"pace": convert_decimal_pace_to_pretty_format(self.pace), "mile_mark": round(self.last_mile_mark,2), "elapsed_time": format_duration(self.elapsed_time), "last_check_in": self.last_timestamp.strftime('%m-%d %H:%M')}
 
     @property
     def marker_description(self):

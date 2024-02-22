@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,21 +7,25 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <title>Material Table Example</title>
 </head>
-<body>
+<body class="blue lighten-5">
 
 <div class="container">
-    <h2>Running Pace Table</h2>
-    <table class="striped">
+    <h2 class="teal-text">Running Pace Table</h2>
+    <table class="striped responsive-table">
         <thead>
-            <tr>
+            <tr class="teal lighten-2 white-text">
                 <th>Pace</th>
                 <th>Mile Mark</th>
+                <th>Elapsed Time</th>
+                <th>Last Check In</th>
             </tr>
         </thead>
         <tbody>
             <tr>
                 <td>{{ pace }}</td>
                 <td>{{ mile_mark }}</td>
+                <td>{{ elapsed_time }}</td>
+                <td>{{ last_check_in }}</td>
             </tr>
         </tbody>
     </table>
@@ -30,3 +35,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </body>
 </html>
+
+
+
+
