@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-import requests
 
-from scipy.spatial import KDTree
 from geopy.distance import geodesic
-
+from scipy.spatial import KDTree
 import numpy as np
+import requests
 
 
 class CaltopoMap:
@@ -73,3 +72,35 @@ class CaltopoMap:
                 and feature.get("properties", {}).get("title") == "Aaron"
             ):
                 self.marker_id = feature["id"]
+
+    def move_marker(self, location, timestamp, marker_course, description):
+        url = f"https://caltopo.com/api/v1/map/{self.map_id}/Marker/{self.marker_id}"
+        headers = {
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Connection": "keep-alive",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Cookie": self.cookie,
+        }
+        payload = {
+            "json": {
+                "type": "Feature",
+                "id": self.marker_id,
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [location[1], location[0]],
+                },
+                "properties": {
+                    "title": "Aaron",
+                    "description": description,
+                    "folderId": self.tracking_folder_id,
+                    "marker-size": "1.5",
+                    "marker-symbol": "a:4",
+                    "marker-color": "A200FF",
+                    "marker-rotation": marker_course,
+                    "class": "Marker",
+                },
+            }
+        }
+        response = requests.post(url, headers=headers, data=urlencode(payload), verify=True)
+        return

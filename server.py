@@ -140,6 +140,18 @@ class Race:
     def stats(self):
         return {"pace": self.pace, "pings": self.pings, "last_ping": self.last_ping}
 
+    @property
+    def marker_description(self):
+        return (
+            f"last update: {self.last_timestamp.strftime('%m-%d %H:%M')}\n"
+            f"mile mark: {round(self.last_mile_mark, 2)}\n"
+            f"elapsed time: {format_duration(self.elapsed_time)}\n"
+            f"avg pace: {convert_decimal_pace_to_pretty_format(self.pace)}\n"
+            f"pings: {self.pings}\n"
+            f"EFD: {self.estimated_finish_date.strftime('%m-%d %H:%M')}\n"
+            f"EFT: {format_duration(self.estimated_finish_time)}"
+        )
+
     def _calculate_last_mile_mark(self):
         _, matched_indices = self.caltopo_map.kdtree.query(self.last_location, k=5)
         return calculate_most_probable_mile_mark(
@@ -186,47 +198,9 @@ class Race:
         self.estimated_finish_time = datetime.timedelta(minutes=self.pace * self.total_distance)
         self.estimated_finish_date = self.start_time + self.estimated_finish_time
         self.save()
-        self.post_to_caltopo()  # TODO
-
-    def post_to_caltopo(self):
-        url = f"https://caltopo.com/api/v1/map/{self.caltopo_map.map_id}/Marker/{self.caltopo_map.marker_id}"
-        headers = {
-            "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Connection": "keep-alive",
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Cookie": self.caltopo_map.cookie,
-        }
-        payload = {
-            "json": {
-                "type": "Feature",
-                "id": self.caltopo_map.marker_id,
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [self.last_location[1], self.last_location[0]],
-                },
-                "properties": {
-                    "title": "Aaron",
-                    "description": (
-                        f"last update: {self.last_timestamp.strftime('%m-%d %H:%M')}\n"
-                        f"mile mark: {round(self.last_mile_mark, 2)}\n"
-                        f"elapsed time: {format_duration(self.elapsed_time)}\n"
-                        f"avg pace: {convert_decimal_pace_to_pretty_format(self.pace)}\n"
-                        f"pings: {self.pings}\n"
-                        f"EFD: {self.estimated_finish_date.strftime('%m-%d %H:%M')}\n"
-                        f"EFT: {format_duration(self.estimated_finish_time)}"
-                    ),
-                    "folderId": self.caltopo_map.tracking_folder_id,
-                    "marker-size": "1.5",
-                    "marker-symbol": "a:4",
-                    "marker-color": "A200FF",
-                    "marker-rotation": self.course,
-                    "class": "Marker",
-                },
-            }
-        }
-        response = requests.post(url, headers=headers, data=urlencode(payload), verify=True)
-        return
+        self.caltopo_map.move_marker(
+            self.last_location, self.last_timestamp, self.course, self.marker_description
+        )
 
 
 def format_duration(duration):
