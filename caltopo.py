@@ -39,14 +39,13 @@ class CaltopoMap:
         for point in route_data:
             if prev_point is not None:
                 geo = geodesic(
-                    (prev_point[1], prev_point[0], prev_point[2] if len(prev_point) == 3 else 0),
-                    (point[1], point[0], point[2] if len(point) == 3 else 0),
+                    (prev_point[0], prev_point[1], prev_point[2] if len(prev_point) == 3 else 0),
+                    (point[0], point[1], point[2] if len(point) == 3 else 0),
                 )
                 distance = geo.miles
                 cumulative_distance += distance
             cumulative_distances_array.append(cumulative_distance)
             prev_point = point
-
         return np.array(route_data), cumulative_distances_array
 
     def get_map_data(self):
@@ -66,7 +65,9 @@ class CaltopoMap:
                 and feature.get("properties", {}).get("title") == "Route"
             ):
                 self.route_id = feature["id"]
-                self.route, self.distances = self.convert_route(feature["geometry"]["coordinates"])
+                # TODO this doesn't handle 3 long lists.
+                ordered_points = [[x, y] for y, x in feature["geometry"]["coordinates"]]
+                self.route, self.distances = self.convert_route(ordered_points)
             elif (
                 feature.get("properties", {}).get("class") == "Marker"
                 and feature.get("properties", {}).get("title") == "Aaron"
