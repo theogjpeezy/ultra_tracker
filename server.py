@@ -111,8 +111,8 @@ class Race:
         self.pings = 0
         self.last_ping = {}
         self.last_timestamp = datetime.datetime.fromtimestamp(0)
-        self.elapsed_time = datetime.datetime.fromtimestamp(0)
-        self.estimated_finish_time = datetime.datetime.fromtimestamp(0)
+        self.elapsed_time = datetime.timedelta(0)
+        self.estimated_finish_time = datetime.timedelta(0)
         self.estimated_finish_date = datetime.datetime.fromtimestamp(0)
         self.last_location = (0, 0)
         self.course = 0
