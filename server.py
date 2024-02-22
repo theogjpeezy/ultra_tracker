@@ -53,11 +53,11 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         # Load the Jinja environment and specify the template directory
-        env = Environment(loader=FileSystemLoader('.'))
+        env = Environment(loader=FileSystemLoader('/proj/ultra_tracker/'))
         template = env.get_template('race_stats.html')
 
         # Render the template with the provided data
-        rendered_html = template.render(**race.html_stats)
+        rendered_html = template.render(**self.race.html_stats)
 
         # Send the HTML response
         self.wfile.write(rendered_html.encode('utf-8'))
