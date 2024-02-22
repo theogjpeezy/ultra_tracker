@@ -14,7 +14,7 @@ import requests
 import yaml
 from jinja2 import Environment, FileSystemLoader
 
-from caltopo import CaltopoMap
+from caltopo import CaltopoMap, is_within_distance
 from service_logging import logger
 
 
@@ -137,6 +137,24 @@ class Race:
         return (point.get("latitude", 0), point.get("longitude", 0))
 
     @property
+    def started(self):
+        if self.start_time > datetime.datetime.now():
+            return False
+        return abs(self.total_distance - self.last_mile_mark) > 0.25
+        #return is_within_distance(self.last_location, self.caltopo_map.finish_location, 0.25)
+        
+    @property
+    def finished(self):
+        if not self.started:
+            return False
+        return abs(self.total_distance - self.last_mile_mark) < 0.25
+        #return is_within_distance(self.last_mile_mark, self.caltopo_map.finish_location, 0.25)
+
+    @property
+    def in_progress(self):
+        return self.started and not self.finished
+
+    @property
     def stats(self):
         return {"pace": self.pace, "pings": self.pings, "last_ping": self.last_ping}
 
@@ -194,6 +212,8 @@ class Race:
         return
 
     def update(self, ping_data):
+        self.pings += 1
+        self.last_ping = ping_data
         # Don't update if latest point is older than current point
         if self.last_timestamp > (new_timestamp := self.extract_timestamp(ping_data)):
             logger.info(
@@ -205,13 +225,13 @@ class Race:
                 f"incoming timestamp {new_timestamp} before race start time {self.start_time}"
             )
             return
-        self.pings += 1
-        self.last_ping = ping_data
         self.last_timestamp = new_timestamp
         self.course = self.extract_course(ping_data)
         self.last_location = self.extract_location(ping_data)
         self.elapsed_time = self.last_timestamp - self.start_time
         self.last_mile_mark = self._calculate_last_mile_mark()
+        if not self.in_progress:
+            return
         self.pace = self._calculate_pace()
         self.estimated_finish_time = datetime.timedelta(minutes=self.pace * self.total_distance)
         self.estimated_finish_date = self.start_time + self.estimated_finish_time
@@ -252,6 +272,10 @@ def calculate_most_probable_mile_mark(mile_marks, elapsed_time, average_pace):
     # Find the mile mark with the highest probability
     most_probable_mile_mark = mile_marks[np.argmax(probabilities)]
     return most_probable_mile_mark
+
+
+
+
 
 
 def main():

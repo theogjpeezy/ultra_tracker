@@ -6,6 +6,7 @@ from scipy.spatial import KDTree
 from urllib.parse import urlencode
 import numpy as np
 import requests
+from math import radians, sin, cos, sqrt, atan2
 
 from service_logging import logger
 
@@ -20,6 +21,8 @@ class CaltopoMap:
         self.route = []
         self.distances = []
         self.get_map_data()
+        self.start_location = self.route[0]
+        self.finish_location = self.route[-1]
         self.kdtree = KDTree(self.route)
 
     def get(self, url):
@@ -109,3 +112,31 @@ class CaltopoMap:
         result = requests.post(url, headers=headers, data=urlencode(payload), verify=True)
         logger.debug(f"marker move result {result.text}")
         return result
+
+def haversine_distance(lat_lon1, lat_lon2):
+    # Radius of the Earth in miles
+    R = 3959.0
+
+    lat1, lon1 = lat_lon1
+    lat2, lon2 = lat_lon2
+    
+    # Convert latitude and longitude from degrees to radians
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    
+    # Calculate the differences in coordinates
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    
+    # Haversine formula
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    
+    # Distance in miles
+    return R * c
+
+
+
+def is_within_distance(lat_lon1, lat_lon2, max_distance):
+    distance = haversine_distance(lat_lon1, lat_lon2)
+    return distance <= max_distance
+
