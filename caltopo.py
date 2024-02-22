@@ -103,5 +103,4 @@ class CaltopoMap:
                 },
             }
         }
-        response = requests.post(url, headers=headers, data=urlencode(payload), verify=True)
-        return
+        return requests.post(url, headers=headers, data=urlencode(payload), verify=True)
