@@ -11,7 +11,7 @@ logger.setLevel(logging.DEBUG)
 syslog_handler = SysLogHandler(address='/dev/log', facility=SysLogHandler.LOG_USER)
 
 # Optionally set the syslog format
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('ultra-tracker - %(levelname)s - %(message)s')
 syslog_handler.setFormatter(formatter)
 
 # Add the SysLogHandler to the logger
