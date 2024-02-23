@@ -1,0 +1,2 @@
+docker build -t ultra_tracker:latest 
+docker run -d -v /proj/ultra_tracker:/app --restart always --name ultra-tracker ultra_tracker:latest 

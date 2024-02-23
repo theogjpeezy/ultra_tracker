@@ -1,5 +1,6 @@
 geopy
 gpxpy
+jinja2
 numpy
 pyyaml
 requests
