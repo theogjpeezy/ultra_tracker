@@ -216,9 +216,7 @@ class Race:
             )
             return
         elif new_timestamp < self.start_time:
-            print(
-                f"incoming timestamp {new_timestamp} before race start time {self.start_time}"
-            )
+            print(f"incoming timestamp {new_timestamp} before race start time {self.start_time}")
             return
         self.last_timestamp = new_timestamp
         self.course = self.extract_course(ping_data)
