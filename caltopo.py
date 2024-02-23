@@ -8,8 +8,6 @@ import numpy as np
 import requests
 from math import radians, sin, cos, sqrt, atan2
 
-from service_logging import logger
-
 
 class CaltopoMap:
     def __init__(self, map_id, cookie):
@@ -58,7 +56,7 @@ class CaltopoMap:
         try:
             features = map_data["result"]["state"]["features"]
         except KeyError:
-            logger.error(f"unable to find features in {map_data}")
+            print(f"unable to find features in {map_data}")
             return
         for feature in features:
             if (
@@ -110,7 +108,7 @@ class CaltopoMap:
             }
         }
         result = requests.post(url, headers=headers, data=urlencode(payload), verify=True)
-        logger.debug(f"marker move result {result.text}")
+        print(f"marker move result {result.text}")
         return result
 
 

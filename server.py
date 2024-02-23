@@ -15,7 +15,6 @@ import yaml
 from jinja2 import Environment, FileSystemLoader
 
 from caltopo import CaltopoMap, is_within_distance
-from service_logging import logger
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,7 +48,7 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         # Load the Jinja environment and specify the template directory
-        env = Environment(loader=FileSystemLoader("/proj/ultra_tracker/"))  # TODO
+        env = Environment(loader=FileSystemLoader("."))  # TODO
         template = env.get_template("race_stats.html")
 
         # Render the template with the provided data
@@ -62,13 +61,13 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers["Content-Length"])
         post_data = self.rfile.read(content_length).decode("utf-8")
         if self.headers.get("x-outbound-auth-token") != self.api_token:
-            logger.critical("Invalid or missing auth token")
+            print("Invalid or missing auth token")
             return
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
         self.race.update(json.loads(post_data))
-        logger.info(
+        print(
             f"mile mark {self.race.last_mile_mark} pace: {self.race.pace} elapsed_time: {self.race.elapsed_time}"
         )
 
@@ -79,10 +78,10 @@ def get_config_data(file_path):
             yaml_content = yaml.safe_load(file)
         return yaml_content
     except FileNotFoundError:
-        logger.error(f"Error: File '{file_path}' not found.")
+        print(f"Error: File '{file_path}' not found.")
         return None
     except yaml.YAMLError as e:
-        logger.error(f"Error: YAML parsing error in '{file_path}': {e}")
+        print(f"Error: YAML parsing error in '{file_path}': {e}")
         return None
 
 
@@ -212,12 +211,12 @@ class Race:
         self.last_ping = ping_data
         # Don't update if latest point is older than current point
         if self.last_timestamp > (new_timestamp := self.extract_timestamp(ping_data)):
-            logger.info(
+            print(
                 f"incoming timestamp {new_timestamp} older than last timestamp {self.last_timestamp}"
             )
             return
         elif new_timestamp < self.start_time:
-            logger.info(
+            print(
                 f"incoming timestamp {new_timestamp} before race start time {self.start_time}"
             )
             return
@@ -227,7 +226,9 @@ class Race:
         self.elapsed_time = self.last_timestamp - self.start_time
         self.last_mile_mark = self._calculate_last_mile_mark()
         self._check_if_started()
+        print(self.start_time, self.last_timestamp)
         if not self.in_progress:
+            print(f"race not in progress started: {self.started} finished: {self.finished}")
             return
         self.pace = self._calculate_pace()
         self.estimated_finish_time = datetime.timedelta(minutes=self.pace * self.total_distance)

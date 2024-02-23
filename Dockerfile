@@ -11,4 +11,4 @@ COPY requirements.txt /app/
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 # Set the entry point and default command for the container
-CMD ["python3", "server.py", "-c", "race_config.yml"]
+CMD ["./docker-entrypoint.sh"]
