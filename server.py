@@ -37,6 +37,7 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
     def __init__(self, api_token, race, *args, **kwargs):
         self.api_token = api_token
         self.race = race
+        self.post_log = "./.post_log.txt"
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
@@ -58,11 +59,19 @@ class GarminTrackHandler(BaseHTTPRequestHandler):
         self.wfile.write(rendered_html.encode("utf-8"))
 
     def do_POST(self):
-        content_length = int(self.headers["Content-Length"])
-        post_data = self.rfile.read(content_length).decode("utf-8")
         if self.headers.get("x-outbound-auth-token") != self.api_token:
-            print("Invalid or missing auth token")
+            self.send_response(401)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"Invalid or missing auth token")
             return
+        content_length = int(self.headers.get("Content-Length", 0))
+        if not content_length:
+            self.send_response(411)
+            return
+        post_data = self.rfile.read(content_length).decode("utf-8")
+        with open(self.post_log, "a") as file:
+            file.write(post_data + "\n")
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
@@ -163,6 +172,7 @@ class Race:
             "pings": self.pings,
             "est_finish_date": self.estimated_finish_date.strftime("%m-%d %H:%M"),
             "est_finish_time": format_duration(self.estimated_finish_time),
+            "start_time": self.start_time.strftime("%m-%d %H:%M"),
         }
 
     @property
@@ -224,7 +234,6 @@ class Race:
         self.elapsed_time = self.last_timestamp - self.start_time
         self.last_mile_mark = self._calculate_last_mile_mark()
         self._check_if_started()
-        print(self.start_time, self.last_timestamp)
         if not self.in_progress:
             print(f"race not in progress started: {self.started} finished: {self.finished}")
             return
