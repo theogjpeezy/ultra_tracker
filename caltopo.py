@@ -119,11 +119,3 @@ class CaltopoMap:
         result = requests.post(url, headers=headers, data=urlencode(payload), verify=True)
         print(f"marker move result {result.text}")
         return result
-
-
-mid = "JT680"
-cook = "_ssid=H2HUFQ1JR9B0; _pk_id.7.62df=020f8edb071dde9d.1688161910.; JSESSIONID=34FD2EE378082D359A8A1F650EC82B64; _pk_ses.7.62df=1"
-m = CaltopoMap(mid, cook)
-import pdb
-
-pdb.set_trace()

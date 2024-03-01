@@ -79,7 +79,7 @@ def transform_path(path_data: list, max_step_size: float) -> tuple:
     interpolated_path_data = interpolate_between_points(np.array(path_data), max_step_size)
     cumulative_distances_array = np.zeros(len(interpolated_path_data))
 
-    for point in interpolated_path_data:
+    for i, point in enumerate(interpolated_path_data):
         if prev_point is not None:
             geo = geodesic(
                 (prev_point[0], prev_point[1], prev_point[2] if len(prev_point) == 3 else 0),
