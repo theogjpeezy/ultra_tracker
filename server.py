@@ -6,7 +6,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from scipy.stats import norm
 import argparse
 import datetime
-import gpxpy
 import json
 import numpy as np
 import os
@@ -14,7 +13,7 @@ import requests
 import yaml
 from jinja2 import Environment, FileSystemLoader
 
-from caltopo import CaltopoMap, is_within_distance
+from caltopo import CaltopoMap
 
 
 def parse_args() -> argparse.Namespace:
@@ -241,9 +240,7 @@ class Race:
         self.estimated_finish_time = datetime.timedelta(minutes=self.pace * self.total_distance)
         self.estimated_finish_date = self.start_time + self.estimated_finish_time
         self.save()
-        self.caltopo_map.move_marker(
-            self.last_location, self.last_timestamp, self.course, self.marker_description
-        )
+        self.caltopo_map.move_marker(self.last_location, self.course, self.marker_description)
         self._check_if_finished()
 
 
