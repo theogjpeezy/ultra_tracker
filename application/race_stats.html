@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+        <title>Ultra Tracker</title>
+        <style>
+            .stats-table th,
+            .stats-table td {
+                font-size: 20px;
+            }
+        </style>
+    </head>
+    <body class="blue lighten-5">
+        <div class="container">
+            <h2 class="teal-text">Race Stats</h2>
+            <table class="striped responsive-table stats-table">
+                <thead>
+                    <tr class="teal lighten-2 white-text">
+                        <th>Start Time</th>
+                        <th>Last Update</th>
+                        <th>Elapsed Time</th>
+                        <th>Mile Mark</th>
+                        <th>Avg Pace</th>
+                        <th>Est Finish Date</th>
+                        <th>Est Finish Time</th>
+                        <th>Pings</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ start_time }}</td>
+                        <td>{{ last_update }}</td>
+                        <td>{{ elapsed_time }}</td>
+                        <td>{{ mile_mark }}</td>
+                        <td>{{ avg_pace }}</td>
+                        <td>{{ est_finish_date }}</td>
+                        <td>{{ est_finish_time }}</td>
+                        <td>{{ pings }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    </body>
+</html>

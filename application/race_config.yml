@@ -1,10 +1,9 @@
-start_time: '2024-02-19T08:00:00' 
-garmin_api_token: XXXXXXXX
-caltopo_map_id: XXXXX
-caltopo_session_id: XXXXXXXXXXXXXX
-tracker_marker_name: Aaron # TODO
+start_time: '2024-02-25T08:00:00' 
+garmin_api_token: 8E22F454
+caltopo_map_id: U5P1F
+caltopo_session_id: 7C40CE0B00386DDF9B41D19616729077
+tracker_marker_name: Aaron
 route_name: Route
-# TODO validate these
 aid_stations:
   - name: 1 Air Down Lot
     mile_mark: 23.3
