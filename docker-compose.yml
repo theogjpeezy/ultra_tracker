@@ -1,0 +1,12 @@
+---
+version: '3'
+services:
+  ultra_tracker:
+    image: ultra_tracker:latest
+    container_name: ultra-tracker
+    ports:
+      - 8080:80
+    restart: unless-stopped
+    network_mode: bridge
+    volumes:
+      - /proj/ultra_tracker/application:/app
