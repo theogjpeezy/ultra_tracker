@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 
-from scipy.spatial import KDTree
-from geopy.distance import geodesic
-import numpy as np
+import datetime
 
-from caltopo import CaltopoMarker, CaltopoShape
+import numpy as np
+from geopy.distance import geodesic
+from scipy.spatial import KDTree
+
+from .caltopo import CaltopoMarker, CaltopoShape
 
 
 def interpolate_between_points(points: np.array, interval_distance):
@@ -122,11 +124,39 @@ class Course:
                 return Route(shape._feature_dict, caltopo_map.map_id, caltopo_map.session_id)
         raise LookupError(f"no shape called '{route_name}' found in shapes: {caltopo_map.shapes}")
 
+    def update_aid_stations(self, runner):
+        for aid_station in self.aid_stations:
+            aid_station.refresh(runner)
+
 
 class AidStation(CaltopoMarker):
     def __init__(self, feature_dict: dict, map_id: str, session_id: str, mile_mark: float):
         super().__init__(feature_dict, map_id, session_id)
         self.mile_mark = mile_mark
+        self.estimated_arrival_time = datetime.datetime.fromtimestamp(0)
+        self.passed = False
+
+    @property
+    def aid_station_description(self):
+        return (
+            f"𝗺𝗶𝗹𝗲 𝗺𝗮𝗿𝗸: {round(self.mile_mark, 2)}\n"
+            f"𝗘𝗧𝗔: {self.estimated_arrival_time.strftime('%m-%d %H:%M')}\n"
+        )
+
+    def refresh(self, runner) -> None:
+        """ """
+        if self.passed:
+            return
+        miles_to_me = self.mile_mark - runner.mile_mark
+        if miles_to_me < 0:
+            self.passed = True
+            # TODO update the marker description here.
+            return
+        minutes_to_me = datetime.timedelta(minutes=miles_to_me * runner.pace)
+        self.estimated_arrival_time = runner.last_ping.timestamp + minutes_to_me
+        self.description = self.aid_station_description
+        # This must be called this way to work with the uwsgi thread decorator.
+        CaltopoMarker.update(self)
 
 
 class Route(CaltopoShape):

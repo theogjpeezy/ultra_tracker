@@ -5,3 +5,6 @@ numpy
 pyyaml
 requests
 scipy
+pyuwsgi
+flask
+uwsgidecorators

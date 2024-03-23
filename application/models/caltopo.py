@@ -2,7 +2,9 @@
 
 
 from urllib.parse import urlencode
+
 import requests
+import uwsgidecorators
 
 
 class CaltopoMap:
@@ -122,6 +124,7 @@ class CaltopoMarker(CaltopoFeature):
             },
         }
 
+    @uwsgidecorators.thread
     def update(self) -> requests.Response:
         """
         Moves the marker to the provided location, updates its description, and rotates it.
@@ -139,11 +142,10 @@ class CaltopoMarker(CaltopoFeature):
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Cookie": f"JSESSIONID={self.session_id}",
         }
-        result = requests.post(
+        requests.post(
             url, headers=headers, data=urlencode({"json": self.as_json}), verify=True, timeout=120
         )
-        print(f"marker update result {result.text}")
-        return result
+        return
 
 
 class CaltopoShape(CaltopoFeature):

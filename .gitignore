@@ -1,2 +1,5 @@
 __pycache__
 *venv*
+race_config.yml
+.data_store.json
+.post_log.txt

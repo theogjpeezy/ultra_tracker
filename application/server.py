@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
-
-from functools import partial
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import argparse
 import datetime
 import json
+
 import yaml
-import sys
+from flask import Flask, request
 from jinja2 import Environment, FileSystemLoader
 
-from caltopo import CaltopoMap
-from race import Race, Runner
-from course import Course
+from models.caltopo import CaltopoMap
+from models.course import Course
+from models.race import Race, Runner
+
+app = Flask(__name__)
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,55 +31,13 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-class GarminTrackHandler(BaseHTTPRequestHandler):
-    def __init__(self, garmin_api_token, race, *args, **kwargs):
-        self.garmin_api_token = garmin_api_token
-        self.race = race
-        self.post_log = "./.post_log.txt"
-        super().__init__(*args, **kwargs)
+def get_config_data(file_path: str) -> dict:
+    """
+    Reads in a yaml file and returns the dict.
 
-    def do_GET(self):
-        # Send a 200 OK response
-        self.send_response(200)
-        # Set the Content-type header
-        self.send_header("Content-type", "text/html")
-        # End the headers
-        self.end_headers()
-
-        # Load the Jinja environment and specify the template directory
-        env = Environment(loader=FileSystemLoader("."))  # TODO
-        template = env.get_template("race_stats.html")
-
-        # Render the template with the provided data
-        rendered_html = template.render(**self.race.html_stats)
-
-        # Send the HTML response
-        self.wfile.write(rendered_html.encode("utf-8"))
-
-    def do_POST(self):
-        if self.headers.get("x-outbound-auth-token") != self.garmin_api_token:
-            self.send_response(401)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            self.wfile.write(b"Invalid or missing auth token")
-            return
-        content_length = int(self.headers.get("Content-Length", 0))
-        if not content_length:
-            self.send_response(411)
-            return
-        post_data = self.rfile.read(content_length).decode("utf-8")
-        with open(self.post_log, "a") as file:
-            file.write(post_data + "\n")
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.race.ingest_ping(json.loads(post_data))
-        print(
-            f"mile mark {self.race.runner.mile_mark} pace: {self.race.runner.pace} elapsed_time: {self.race.runner.elapsed_time}"
-        )
-
-
-def get_config_data(file_path):
+    :param str file_path: The path to the file.
+    :return dict: The parsed dict from the config file.
+    """
     try:
         with open(file_path, "r") as file:
             yaml_content = yaml.safe_load(file)
@@ -95,45 +53,65 @@ def get_config_data(file_path):
 # TODO handle time zones
 
 
-def main():
-    # Read in the config file.
-    args = parse_args()
-    config_data = get_config_data(args.config)
-    # Fail fast if these aren't defined.
-    garmin_api_token = config_data["garmin_api_token"]
-    start_time = datetime.datetime.strptime(config_data["start_time"], "%Y-%m-%dT%H:%M:%S")
-    data_store = config_data.get("data_store", ".data_store.json")
-    caltopo_map_id = config_data["caltopo_map_id"]
-    caltopo_session_id = config_data["caltopo_session_id"]
-    aid_station_list = config_data["aid_stations"]
-    route_name = config_data["route_name"]
-    tracker_marker_name = config_data["tracker_marker_name"]
-    caltopo_map = CaltopoMap(caltopo_map_id, caltopo_session_id)
-    print("created map object...")
-    course = Course(caltopo_map, aid_station_list, route_name)
-    print("created course object...")
-    runner = Runner(caltopo_map, tracker_marker_name)
-    print("created runner object...")
+@app.route("/", methods=["GET"])
+def get_race_stats():
+    """
+    Renders the webpage for the race statistics and monitoring.
 
-    race = Race(
-        start_time,
-        data_store,
-        course,
-        runner,
+    :return tuple: The rendered HTML page.
+    """
+    # Load the Jinja environment and specify the template directory
+    env = Environment(loader=FileSystemLoader("templates"))
+    template = env.get_template("race_stats.html")
+    # Render the template with the provided data
+    rendered_html = template.render(**race.html_stats)
+    # Send the HTML response
+    return rendered_html, 200, {"Content-Type": "text/html"}
+
+
+@app.route("/", methods=["POST"])
+def post_data():
+    """
+    Receives a ping from the tracker, updates the race object, and logs information.
+
+    :return tuple: The HTTP response.
+    """
+    if request.headers.get("x-outbound-auth-token") != app.config["UT_GARMIN_API_TOKEN"]:
+        return "Invalid or missing auth token", 401
+    content_length = request.headers.get("Content-Length", 0)
+    if not content_length:
+        return "Content-Length header is missing or zero", 411
+    post_data = request.get_data(as_text=True)
+    with open("./.post_log.txt", "a") as file:
+        file.write(post_data + "\n")
+    race = app.config["UT_RACE"]
+    race.ingest_ping(json.loads(post_data))
+    print(
+        f"mile mark {race.runner.mile_mark} pace: {race.runner.pace} elapsed_time: {race.runner.elapsed_time}"
     )
-    print("created race object...")
+    return "OK", 200
 
-    server_address = ("", 8080)  # TODO
 
-    # We "partially apply" the first three arguments to the ExampleHandler
-    handler = partial(GarminTrackHandler, garmin_api_token, race)
-    # .. then pass it to HTTPHandler as normal:
-    server = HTTPServer(server_address, handler)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        sys.exit(0)
+# Read in the config file.
+args = parse_args()
+config_data = get_config_data(args.config)
+# Create the objects to manage the race.
+caltopo_map = CaltopoMap(config_data["caltopo_map_id"], config_data["caltopo_session_id"])
+print("created map object...")
+course = Course(caltopo_map, config_data["aid_stations"], config_data["route_name"])
+print("created course object...")
+runner = Runner(caltopo_map, config_data["tracker_marker_name"])
+print("created runner object...")
+race = Race(
+    datetime.datetime.strptime(config_data["start_time"], "%Y-%m-%dT%H:%M:%S"),
+    ".data_store.json",
+    course,
+    runner,
+)
+print("created race object...")
+app.config["UT_GARMIN_API_TOKEN"] = config_data["garmin_api_token"]
+app.config["UT_RACE"] = race
 
 
 if __name__ == "__main__":
-    main()
+    app.run(host="0.0.0.0", port=8080)

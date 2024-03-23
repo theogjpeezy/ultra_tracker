@@ -1,0 +1,2 @@
+sudo docker build -t ultra_tracker:latest .
+sudo docker run -e TZ=America/New_York -d -v /proj/ultra_tracker:/app -p 80:80 --restart unless-stopped --name ultra-tracker ultra_tracker:latest 

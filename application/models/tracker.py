@@ -36,10 +36,20 @@ class Ping:
 
     @property
     def latlon(self) -> list:
+        """
+        The coordinates in (latitude, longitude) order.
+
+        :return list: The coordinates in (latitude, longitude) order.
+        """
         return [self.latitude, self.longitude]
 
     @property
     def lonlat(self) -> list:
+        """
+        The coordinates in (longitude, latitude) order.
+
+        :return list: The coordinates in (longitude, latitude) order.
+        """
         return [self.longitude, self.latitude]
 
     def extract_timestamp(self):
