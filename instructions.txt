@@ -1,2 +1,2 @@
-# Run with uWSGI:
-uwsgi --ini uwsgi.ini --pyargv='-c race_config.yml'
+sudo docker build -t ultra_tracker:latest .
+sudo docker run -e TZ=America/New_York -d -v /proj/ultra_tracker/application:/app -p 8080:80 --restart unless-stopped --name ultra-tracker ultra_tracker:latest 

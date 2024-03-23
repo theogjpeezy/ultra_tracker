@@ -8,6 +8,9 @@ WORKDIR /app
 VOLUME /app
 
 COPY requirements.txt /app/
+
+RUN useradd -ms /bin/bash uwsgi
+
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 # Set the entry point and default command for the container
