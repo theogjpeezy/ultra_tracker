@@ -2,6 +2,9 @@
 version: '3'
 services:
   ultra_tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ultra_tracker:latest
     container_name: ultra-tracker
     ports:
