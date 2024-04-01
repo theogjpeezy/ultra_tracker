@@ -1,0 +1,16 @@
+[Unit]
+Description=Ultra Tracker
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=simple
+Environment="COMPOSE_PROJECT_DIR=/proj/ultra_tracker"
+Environment="COMPOSE_FILE=docker-compose.yml"
+ExecStartPre=/usr/local/bin/podman-compose up --detach
+ExecStart=/usr/local/bin/podman-compose wait
+ExecStop=/usr/local/bin/podman-compose down
+Restart=unless-stopped
+
+[Install]
+WantedBy=multi-user.target
