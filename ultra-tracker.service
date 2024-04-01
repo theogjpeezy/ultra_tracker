@@ -7,9 +7,9 @@ Wants=network-pre.target
 Type=simple
 Environment="COMPOSE_PROJECT_DIR=/proj/ultra_tracker"
 Environment="COMPOSE_FILE=docker-compose.yml"
-ExecStartPre=/usr/local/bin/podman-compose up --detach
-ExecStart=/usr/local/bin/podman-compose wait
-ExecStop=/usr/local/bin/podman-compose down
+ExecStartPre=/usr/bin/podman-compose up --detach
+ExecStart=/usr/bin/podman-compose wait
+ExecStop=/usr/bin/podman-compose down
 Restart=unless-stopped
 
 [Install]
