@@ -84,9 +84,8 @@ class CaltopoMap:
         if not response.ok:
             print(f"WARNING: unable to create test folder: {response.text}")
             return False
-        print(response.json())
-        url = f"https://caltopo.com/api/v1/map/{self.map_id}/Folder/{response.json()['id']}"
-        requests.delete(            url, headers=headers, verify=True, timeout=120        )
+        url = f"https://caltopo.com/api/v1/map/{self.map_id}/Folder/{response.json()['result']['id']}"
+        r = requests.delete(            url, headers=headers, verify=True, timeout=120        )
         return True
 
 
