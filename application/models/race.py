@@ -4,8 +4,9 @@
 import datetime
 import json
 import os
-import pytz
+
 import numpy as np
+import pytz
 from scipy.stats import norm
 
 from .caltopo import CaltopoMarker
@@ -188,7 +189,7 @@ class Runner:
         self.finished = False
         self.started = False
         self.mile_mark = 0
-        self.last_ping = Ping({}, pytz.timezone('Etc/GMT'))
+        self.last_ping = Ping({}, pytz.timezone("Etc/GMT"))
         self.marker = self.extract_marker(marker_name, caltopo_map)
         self.pace = 10
         self.pings = 0

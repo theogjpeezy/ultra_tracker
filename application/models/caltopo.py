@@ -2,11 +2,11 @@
 
 
 from urllib.parse import urlencode
-import pytz
-from timezonefinder import TimezoneFinder
 
+import pytz
 import requests
 import uwsgidecorators
+from timezonefinder import TimezoneFinder
 
 
 class CaltopoMap:
@@ -185,4 +185,3 @@ def get_timezone(latlon: list):
         return pytz.timezone(timezone_str)
     else:
         return None
-

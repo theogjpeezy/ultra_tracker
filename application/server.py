@@ -3,10 +3,10 @@
 import argparse
 import datetime
 import json
+
 import yaml
 from flask import Flask, request
 from jinja2 import Environment, FileSystemLoader
-
 from models.caltopo import CaltopoMap
 from models.course import Course
 from models.race import Race, Runner
@@ -99,7 +99,9 @@ print("created course object...")
 runner = Runner(caltopo_map, config_data["tracker_marker_name"])
 print("created runner object...")
 race = Race(
-    course.timezone.localize(datetime.datetime.strptime(config_data["start_time"], "%Y-%m-%dT%H:%M:%S")),
+    course.timezone.localize(
+        datetime.datetime.strptime(config_data["start_time"], "%Y-%m-%dT%H:%M:%S")
+    ),
     ".data_store.json",
     course,
     runner,
