@@ -6,6 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ultra_tracker:latest
+    logging:
+      driver: none
     container_name: ultra-tracker
     ports:
       - 80:8080
