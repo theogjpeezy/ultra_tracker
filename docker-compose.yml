@@ -8,7 +8,7 @@ services:
     image: ultra_tracker:latest
     container_name: ultra-tracker
     ports:
-      - 8080:8080
+      - 80:8080
     restart: unless-stopped
     network_mode: bridge
     volumes:
