@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 
+import uuid
 from urllib.parse import urlencode
 
-import uuid
 import pytz
 import requests
 import uwsgidecorators
@@ -63,7 +63,7 @@ class CaltopoMap:
                 self.markers.add(CaltopoMarker(feature, self.map_id, self.session_id))
             else:
                 print(f"Unknown feature found: {feature}")
-    
+
     def test_authentication(self) -> bool:
         """
         Attempts to create and delete a folder to ensure authentication is working.
@@ -79,15 +79,31 @@ class CaltopoMap:
             "Cookie": f"JSESSIONID={self.session_id}",
         }
         response = requests.post(
-            url, headers=headers, data=urlencode({"json": {"properties":{"title":str(uuid.uuid1()),"visible":False,"labelVisible":False},"id":None}}), verify=True, timeout=120
+            url,
+            headers=headers,
+            data=urlencode(
+                {
+                    "json": {
+                        "properties": {
+                            "title": str(uuid.uuid1()),
+                            "visible": False,
+                            "labelVisible": False,
+                        },
+                        "id": None,
+                    }
+                }
+            ),
+            verify=True,
+            timeout=120,
         )
         if not response.ok:
             print(f"WARNING: unable to create test folder: {response.text}")
             return False
-        url = f"https://caltopo.com/api/v1/map/{self.map_id}/Folder/{response.json()['result']['id']}"
-        r = requests.delete(            url, headers=headers, verify=True, timeout=120        )
+        url = (
+            f"https://caltopo.com/api/v1/map/{self.map_id}/Folder/{response.json()['result']['id']}"
+        )
+        requests.delete(url, headers=headers, verify=True, timeout=120)
         return True
-
 
 
 class CaltopoFeature:
