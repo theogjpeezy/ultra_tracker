@@ -3,6 +3,7 @@
 
 from urllib.parse import urlencode
 
+import uuid
 import pytz
 import requests
 import uwsgidecorators
@@ -62,6 +63,32 @@ class CaltopoMap:
                 self.markers.add(CaltopoMarker(feature, self.map_id, self.session_id))
             else:
                 print(f"Unknown feature found: {feature}")
+    
+    def test_authentication(self) -> bool:
+        """
+        Attempts to create and delete a folder to ensure authentication is working.
+
+        :return bool: True if the auth test passed and False otherwise.
+        """
+        url = f"https://caltopo.com/api/v1/map/{self.map_id}/Folder"
+        headers = {
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Connection": "keep-alive",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Cookie": f"JSESSIONID={self.session_id}",
+        }
+        response = requests.post(
+            url, headers=headers, data=urlencode({"json": {"properties":{"title":str(uuid.uuid1()),"visible":False,"labelVisible":False},"id":None}}), verify=True, timeout=120
+        )
+        if not response.ok:
+            print(f"WARNING: unable to create test folder: {response.text}")
+            return False
+        print(response.json())
+        url = f"https://caltopo.com/api/v1/map/{self.map_id}/Folder/{response.json()['id']}"
+        requests.delete(            url, headers=headers, verify=True, timeout=120        )
+        return True
+
 
 
 class CaltopoFeature:

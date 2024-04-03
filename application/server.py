@@ -110,6 +110,7 @@ print("created race object...")
 # TODO perform a test to see if it authenticates
 app.config["UT_GARMIN_API_TOKEN"] = config_data["garmin_api_token"]
 app.config["UT_RACE"] = race
+caltopo_map.test_authentication()
 
 
 if __name__ == "__main__":
