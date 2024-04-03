@@ -4,7 +4,7 @@
 import datetime
 import json
 import os
-
+import pytz
 import numpy as np
 from scipy.stats import norm
 
@@ -145,7 +145,7 @@ class Race:
                 data = json.load(f)
                 self.runner.pace = data.get("pace", 10)
                 self.runner.pings = data.get("pings", 0)
-                self.runner.last_ping = Ping(data.get("last_ping_raw", {}))
+                self.runner.last_ping = Ping(data.get("last_ping_raw", {}), self.course.timezone)
 
     def ingest_ping(self, ping_data: dict) -> None:
         """
@@ -155,7 +155,10 @@ class Race:
         :return None:
         """
         self.last_ping_raw = ping_data
-        ping = Ping(ping_data)
+        ping = Ping(ping_data, self.course.timezone)
+        if ping.gps_fix == 0 or ping.latlon == [0, 0]:
+            print("ping does not contain GPS coordinates, skipping")
+            return
         # Don't do anything if the race hasn't started yet.
         if ping.timestamp < self.start_time:
             print(f"incoming timestamp {ping.timestamp} before race start time {self.start_time}")
@@ -185,7 +188,7 @@ class Runner:
         self.finished = False
         self.started = False
         self.mile_mark = 0
-        self.last_ping = Ping({})
+        self.last_ping = Ping({}, pytz.timezone('Etc/GMT'))
         self.marker = self.extract_marker(marker_name, caltopo_map)
         self.pace = 10
         self.pings = 0

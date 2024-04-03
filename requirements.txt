@@ -1,10 +1,12 @@
+flask
 geopy
 gpxpy
 jinja2
 numpy
+pytz
+pyuwsgi
 pyyaml
 requests
 scipy
-pyuwsgi
-flask
+timezonefinder
 uwsgidecorators

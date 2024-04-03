@@ -14,6 +14,7 @@ class Ping:
     __slots__ = {
         "_event",
         "altitude",
+        "gps_fix",
         "heading",
         "imei",
         "latitude",
@@ -23,16 +24,17 @@ class Ping:
         "timestamp",
     }
 
-    def __init__(self, ping_data: dict):
+    def __init__(self, ping_data: dict, timezone):
         self._event = ping_data.get("Events", [{}])[0]
         self.altitude = self._event.get("point", {}).get("altitude", 0.0)
+        self.gps_fix = self._event.get("point", {}).get("gpsFix", 0)
         self.heading = self._event.get("point", {}).get("course", 0)
         self.imei = self._event.get("imei")
         self.latitude = self._event.get("point", {}).get("latitude", 0.0)
         self.longitude = self._event.get("point", {}).get("longitude", 0.0)
         self.message_code = self._event.get("messageCode")
         self.speed = self._event.get("point", {}).get("speed", 0.0)
-        self.timestamp = self.extract_timestamp()
+        self.timestamp = self.extract_timestamp(timezone)
 
     @property
     def latlon(self) -> list:
@@ -52,7 +54,7 @@ class Ping:
         """
         return [self.longitude, self.latitude]
 
-    def extract_timestamp(self):
+    def extract_timestamp(self, timezone):
         """
         Extracts the timestamp from the event.
 
@@ -60,6 +62,6 @@ class Ping:
         """
         ts = self._event.get("timeStamp", 0)
         try:
-            return datetime.datetime.fromtimestamp(ts)
+            return datetime.datetime.fromtimestamp(ts, timezone)
         except ValueError:
-            return datetime.datetime.fromtimestamp(ts // 1000)
+            return datetime.datetime.fromtimestamp(ts // 1000, timezone)

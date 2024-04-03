@@ -2,6 +2,8 @@
 
 
 from urllib.parse import urlencode
+import pytz
+from timezonefinder import TimezoneFinder
 
 import requests
 import uwsgidecorators
@@ -142,9 +144,11 @@ class CaltopoMarker(CaltopoFeature):
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Cookie": f"JSESSIONID={self.session_id}",
         }
-        requests.post(
+        response = requests.post(
             url, headers=headers, data=urlencode({"json": self.as_json}), verify=True, timeout=120
         )
+        if not response.ok:
+            print(f"WARNING: unable to update marker: {response.text}")
         return
 
 
@@ -166,3 +170,19 @@ class CaltopoFolder(CaltopoFeature):
 
     def __init__(self, feature_dict: dict, map_id: str, session_id: str):
         super().__init__(feature_dict, map_id, session_id)
+
+
+def get_timezone(latlon: list):
+    """
+    Given a location by coordinates, returns the timezone.
+
+    :param list latlon: The latitude, longitude of the location.
+    :return pytz: A timezone object.
+    """
+    tf = TimezoneFinder()
+    timezone_str = tf.timezone_at(lat=latlon[0], lng=latlon[1])
+    if timezone_str:
+        return pytz.timezone(timezone_str)
+    else:
+        return None
+

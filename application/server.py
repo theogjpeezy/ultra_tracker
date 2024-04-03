@@ -3,7 +3,6 @@
 import argparse
 import datetime
 import json
-
 import yaml
 from flask import Flask, request
 from jinja2 import Environment, FileSystemLoader
@@ -48,9 +47,6 @@ def get_config_data(file_path: str) -> dict:
     except yaml.YAMLError as e:
         print(f"Error: YAML parsing error in '{file_path}': {e}")
         return None
-
-
-# TODO handle time zones
 
 
 @app.route("/", methods=["GET"])
@@ -103,12 +99,13 @@ print("created course object...")
 runner = Runner(caltopo_map, config_data["tracker_marker_name"])
 print("created runner object...")
 race = Race(
-    datetime.datetime.strptime(config_data["start_time"], "%Y-%m-%dT%H:%M:%S"),
+    course.timezone.localize(datetime.datetime.strptime(config_data["start_time"], "%Y-%m-%dT%H:%M:%S")),
     ".data_store.json",
     course,
     runner,
 )
 print("created race object...")
+# TODO perform a test to see if it authenticates
 app.config["UT_GARMIN_API_TOKEN"] = config_data["garmin_api_token"]
 app.config["UT_RACE"] = race
 

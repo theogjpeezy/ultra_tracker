@@ -7,7 +7,7 @@ import numpy as np
 from geopy.distance import geodesic
 from scipy.spatial import KDTree
 
-from .caltopo import CaltopoMarker, CaltopoShape
+from .caltopo import CaltopoMarker, CaltopoShape, get_timezone
 
 
 def interpolate_between_points(points: np.array, interval_distance):
@@ -101,6 +101,7 @@ class Course:
     def __init__(self, caltopo_map, aid_stations: list, route_name: str):
         self.aid_stations = self.extract_aid_stations(aid_stations, caltopo_map)
         self.route = self.extract_route(route_name, caltopo_map)
+        self.timezone = get_timezone(self.route.start_location)
 
     def extract_aid_stations(self, aid_stations: list, caltopo_map):
         # Map each marker's title to the object.
