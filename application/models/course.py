@@ -109,7 +109,7 @@ class Course:
         # Map each marker's title to the object.
         title_to_marker = {marker.title: marker for marker in caltopo_map.markers}
         try:
-            return [
+            aid_objs = sorted([
                 AidStation(
                     title_to_marker[aid_station["name"]]._feature_dict,
                     caltopo_map.map_id,
@@ -117,7 +117,13 @@ class Course:
                     aid_station["mile_mark"],
                 )
                 for aid_station in aid_stations
-            ]
+            ])
+            prev_mile_mark = 0
+            # Now define all of the distances to each aid.
+            for aso in aid_objects:
+                aso.distance_to = aso.mile_mark - prev_mile_mark
+                prev_mile_mark = aso.mile_mark
+            return aid_objs
         except KeyError as err:
             raise KeyError(f"aid station '{err.args[0]}' not found in {caltopo_map.markers}")
 
@@ -137,6 +143,7 @@ class AidStation(CaltopoMarker):
         super().__init__(feature_dict, map_id, session_id)
         self.mile_mark = mile_mark
         self.estimated_arrival_time = datetime.datetime.fromtimestamp(0)
+        self.distance_to = 0
 
     @property
     def aid_station_description(self):
@@ -156,6 +163,9 @@ class AidStation(CaltopoMarker):
         self.description = self.aid_station_description
         # This must be called this way to work with the uwsgi thread decorator.
         CaltopoMarker.update(self)
+
+    def __lt__(self, other):
+        return self.mile_mark < other.mile_mark
 
 
 class Route(CaltopoShape):
