@@ -65,3 +65,6 @@ class Ping:
             return datetime.datetime.fromtimestamp(ts, timezone)
         except ValueError:
             return datetime.datetime.fromtimestamp(ts // 1000, timezone)
+
+    def __str__(self):
+        return f"PING {self.timestamp} | {self.heading}° | {self.latlon}"

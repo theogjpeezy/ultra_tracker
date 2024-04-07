@@ -10,24 +10,27 @@ from scipy.spatial import KDTree
 from .caltopo import CaltopoMarker, CaltopoShape, get_timezone
 
 
-def interpolate_between_points(points: np.array, interval_distance):
+def interpolate_and_filter_points(
+    coordinates: np.array, min_interval_dist: float, max_interval_dist: float
+):
     """
-    Interpolate points along a path to ensure that no two consecutive points are more than the
-    specified distance apart.
+    Interpolate points between the given coordinates and filter points based on the distance criteria.
 
-    :param numpy.ndarray points: An array of shape (n, 2) where each row represents a point with
+    :param numpy.ndarray coordinates: An array of shape (n, 2) where each row represents a point with
     latitude and longitude coordinates.
-    :param float interval_distance: The maximum distance allowed between two consecutive points. If
+    :param float min_interval_dist: The minimum distance allowed between two consecutive points. If
+    the distance between two points is less than this value, the point will be removed.
+    :param float max_interval_dist: The maximum distance allowed between two consecutive points. If
     the distance between two points is greater than this value, additional points will be
     interpolated to meet the specified interval.
 
-    :return numpy.ndarray: An array of interpolated points with latitude and longitude coordinates.
+    :return numpy.ndarray: An array of filtered and interpolated points with latitude and longitude coordinates.
     """
     interpolated_points = np.empty((0, 2), dtype=float)
 
-    for i in range(len(points) - 1):
-        point1 = {"latitude": points[i, 0], "longitude": points[i, 1]}
-        point2 = {"latitude": points[i + 1, 0], "longitude": points[i + 1, 1]}
+    for i in range(len(coordinates) - 1):
+        point1 = {"latitude": coordinates[i, 0], "longitude": coordinates[i, 1]}
+        point2 = {"latitude": coordinates[i + 1, 0], "longitude": coordinates[i + 1, 1]}
 
         # Convert latitude and longitude to (lat, lon) tuples
         coords1 = (point1["latitude"], point1["longitude"])
@@ -35,21 +38,17 @@ def interpolate_between_points(points: np.array, interval_distance):
 
         # Calculate the distance between consecutive points
         distance_between_points = geodesic(coords1, coords2).miles
-
         # Include the starting point of each segment
         interpolated_points = np.vstack(
             [interpolated_points, [point1["latitude"], point1["longitude"]]]
         )
-
-        # Check if interpolation is needed
-        if distance_between_points > interval_distance:
+        # Check if interpolation or removal is needed
+        if distance_between_points > max_interval_dist:
             # Calculate the number of intervals needed
-            num_intervals = int(distance_between_points / interval_distance)
-
+            num_intervals = int(distance_between_points / max_interval_dist)
             # Calculate the step size for latitude and longitude
             lat_step = (point2["latitude"] - point1["latitude"]) / num_intervals
             lon_step = (point2["longitude"] - point1["longitude"]) / num_intervals
-
             # Generate interpolated points
             intermediate_array = np.array(
                 [
@@ -57,31 +56,34 @@ def interpolate_between_points(points: np.array, interval_distance):
                     for j in range(1, num_intervals + 1)  # Include the last point
                 ]
             )
-
             interpolated_points = np.vstack([interpolated_points, intermediate_array])
-
+        elif distance_between_points < min_interval_dist:
+            # Skip adding this point if it's too close to the previous one
+            continue
     # Include the last point of the original array
     interpolated_points = np.vstack(
         [interpolated_points, [point2["latitude"], point2["longitude"]]]
     )
-
     return interpolated_points
 
 
-def transform_path(path_data: list, max_step_size: float) -> tuple:
+def transform_path(path_data: list, min_step_size: float, max_step_size: float) -> tuple:
     """
     Takes a list of coordinate pairs (a list) and performs two operations. The first is to
     interpolate the path so that no two points are more than the `max_step_size` apart. The second
     is to calculate a cumulative sum of the distances between the points.
 
     :param list path_data: The list of coordinates making up the path.
+    :param float min_step_size: The minumum distance allowed between points in the transformed path.
     :param float max_step_size: The maximum distance allowed between points in the transformed path.
     :return tuple: The newly interpolated path as a numpy array and the array of the cumulative
     distances.
     """
     cumulative_distance = 0
     prev_point = None
-    interpolated_path_data = interpolate_between_points(np.array(path_data), max_step_size)
+    interpolated_path_data = interpolate_and_filter_points(
+        np.array(path_data), min_step_size, max_step_size
+    )
     cumulative_distances_array = np.zeros(len(interpolated_path_data))
 
     for i, point in enumerate(interpolated_path_data):
@@ -135,7 +137,6 @@ class AidStation(CaltopoMarker):
         super().__init__(feature_dict, map_id, session_id)
         self.mile_mark = mile_mark
         self.estimated_arrival_time = datetime.datetime.fromtimestamp(0)
-        self.passed = False
 
     @property
     def aid_station_description(self):
@@ -146,12 +147,9 @@ class AidStation(CaltopoMarker):
 
     def refresh(self, runner) -> None:
         """ """
-        if self.passed:
-            return
         miles_to_me = self.mile_mark - runner.mile_mark
         if miles_to_me < 0:
-            self.passed = True
-            # TODO update the marker description here.
+            # The runner has already passed this aid station.
             return
         minutes_to_me = datetime.timedelta(minutes=miles_to_me * runner.pace)
         self.estimated_arrival_time = runner.last_ping.timestamp + minutes_to_me
@@ -164,7 +162,9 @@ class Route(CaltopoShape):
     def __init__(self, feature_dict: dict, map_id: str, session_id: str):
         super().__init__(feature_dict, map_id, session_id)
         # TODO this doesn't handle 3 long lists.
-        self.points, self.distances = transform_path([[y, x] for x, y in self.coordinates], 0.11)
+        self.points, self.distances = transform_path(
+            [[y, x] for x, y in self.coordinates], 0.02, 0.05
+        )
         self.length = self.distances[-1]
         self.start_location = self.points[0]
         self.finish_location = self.points[-1]

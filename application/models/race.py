@@ -96,6 +96,7 @@ class Race:
         self.last_ping_raw = {}
         self.map_url = caltopo_map.url
         self.restore()
+        print(f"race at {self.start_time} of {self.course.route.length} mi")
 
     @property
     def stats(self) -> dict:
@@ -161,6 +162,7 @@ class Race:
         """
         self.last_ping_raw = ping_data
         ping = Ping(ping_data, self.course.timezone)
+        print(ping)
         if ping.gps_fix == 0 or ping.latlon == [0, 0]:
             print("ping does not contain GPS coordinates, skipping")
             return
@@ -206,6 +208,11 @@ class Runner:
         :param CaltopoMap caltopo_map: The map object containing the markers.
         :return CaltopoMarker: The marker representing the runner.
         """
+        for marker in caltopo_map.markers:
+            if marker.title == f"{marker_name} (estimated)":
+                self.estimate_marker = marker
+                break
+
         for marker in caltopo_map.markers:
             if marker.title == marker_name:
                 return marker
@@ -269,7 +276,7 @@ class Runner:
             f"𝗘𝗙𝗧: {format_duration(self.estimated_finish_time)}"
         )
 
-    def calculate_mile_mark(self, route) -> float:
+    def calculate_mile_mark(self, route) -> tuple:
         """
         Calculates the most likely mile mark of the runner. This is based on the runner's location
         and pace. This will grab the 5 closest points on the course to the runner's ping,
@@ -277,14 +284,17 @@ class Runner:
         then return the point with the highest probability.
 
         :param Route route: The route of the course.
-        :return float: The most probable mile mark.
+        :return tuple: The most probable mile mark and the coordinates of that mile mark on the 
+        course.
         """
         _, matched_indices = route.kdtree.query(self.last_ping.latlon, k=5)
-        return calculate_most_probable_mile_mark(
+        mile_mark = calculate_most_probable_mile_mark(
             [route.distances[i] for i in matched_indices],
             self.elapsed_time.total_seconds() / 60,
             self.pace,
         )
+        coords = route.points[np.where(route.distances == mile_mark)[0]].tolist()[0]
+        return mile_mark, coords
 
     def check_in(self, ping: Ping, start_time: datetime.datetime, route: Route) -> None:
         """
@@ -305,7 +315,7 @@ class Runner:
         # At this point the race has started and this is a new ping.
         self.last_ping = ping
         self.elapsed_time = ping.timestamp - start_time
-        self.mile_mark = self.calculate_mile_mark(route)
+        self.mile_mark, coords = self.calculate_mile_mark(route)
         self.check_if_started()
         if not self.in_progress:
             print(f"race not in progress; started: {self.started} finished: {self.finished}")
@@ -317,7 +327,17 @@ class Runner:
         self.marker.description = self.marker_description
         self.marker.coordinates = ping.lonlat
         self.marker.rotation = round(ping.heading)
+        # Update the estimate marker coordinates.
+        self.estimate_marker.coordinates = coords[::-1]
+        self.estimate_marker.rotation = round(ping.heading)
+        self.estimate_marker.description = ""
+        # Issue the POST to update the estimate marker.
+        CaltopoMarker.update(self.estimate_marker)
         # Issue the POST to update the marker. This must be called this way to work with the uwsgi
         # thread decorator.
         CaltopoMarker.update(self.marker)
         self.check_if_finished(route)
+        print(self)
+
+    def __str__(self):
+        return f"RUNNER {round(self.mile_mark, 2)} mi @ {convert_decimal_pace_to_pretty_format(self.pace)} ({format_duration(self.elapsed_time)})"

@@ -82,9 +82,6 @@ def post_data():
         file.write(post_data + "\n")
     race = app.config["UT_RACE"]
     race.ingest_ping(json.loads(post_data))
-    print(
-        f"mile mark {race.runner.mile_mark} pace: {race.runner.pace} elapsed_time: {race.runner.elapsed_time}"
-    )
     return "OK", 200
 
 

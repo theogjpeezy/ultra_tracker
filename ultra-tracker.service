@@ -8,7 +8,7 @@ Type=simple
 Environment="COMPOSE_PROJECT_DIR=/proj/ultra_tracker"
 Environment="COMPOSE_FILE=docker-compose.yml"
 ExecStart=/usr/bin/podman-compose up
-ExecStop=/usr/bin/podman-compose down
+ExecStop=/usr/bin/podman-compose down -t 2
 Restart=always
 
 [Install]

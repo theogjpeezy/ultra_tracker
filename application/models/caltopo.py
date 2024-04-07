@@ -174,9 +174,6 @@ class CaltopoMarker(CaltopoFeature):
         """
         Moves the marker to the provided location, updates its description, and rotates it.
 
-        :param list location: The (x, y) coordinates to which the marker should be moved.
-        :param float marker_heading: The heading (0 - 359) in which the marker should be rotated.
-        :param str description: The description to set on the marker.
         :return requests.Reponse: A response object of the issued POST.
         """
         url = f"https://caltopo.com/api/v1/map/{self.map_id}/Marker/{self.id}"
@@ -205,7 +202,7 @@ class CaltopoShape(CaltopoFeature):
         self.fill = self.properties.get("fill", "#FF0000")
         self.stroke = self.properties.get("width", "#FF0000")
         # Warning! This could be a 3-deep list: [[[-75.8..., 32.1...]]]
-        self.coordinates = self.geometry.get("coordinates", [])
+        self.coordinates = [point[:2] for point in self.geometry.get("coordinates", [])]
 
 
 class CaltopoFolder(CaltopoFeature):
