@@ -70,7 +70,7 @@
           <div class="accordion-body">
             <p><strong>Mile Mark:</strong> {{ aid_station.mile_mark }}</p>
             <p><strong>ETA:</strong> {{ aid_station.estimated_arrival_time.strftime("%m-%d %H:%M") }}</p>
-            <p><strong>Distance To Aid:</strong> {{ aid_station.distance_to | round(1) }}</p>
+            <p><strong>Distance To Aid:</strong> {{ aid_station.distance_to | round(1) }} miles</p>
             <a href="{{ aid_station.gmaps_url }}" target="_blank">View Location on Google Maps</a>
           </div>
         </div>

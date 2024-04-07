@@ -120,7 +120,7 @@ class Course:
             ])
             prev_mile_mark = 0
             # Now define all of the distances to each aid.
-            for aso in aid_objects:
+            for aso in aid_objs:
                 aso.distance_to = aso.mile_mark - prev_mile_mark
                 prev_mile_mark = aso.mile_mark
             return aid_objs
