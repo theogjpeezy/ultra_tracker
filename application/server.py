@@ -99,6 +99,7 @@ print("created course object...")
 runner = Runner(caltopo_map, config_data["tracker_marker_name"])
 print("created runner object...")
 race = Race(
+    caltopo_map,
     course.timezone.localize(
         datetime.datetime.strptime(config_data["start_time"], "%Y-%m-%dT%H:%M:%S")
     ),

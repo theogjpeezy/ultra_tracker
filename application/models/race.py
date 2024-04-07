@@ -73,6 +73,7 @@ class Race:
     """
     This object orchestrates a race.
 
+    :param CaltopoMap caltopo_map: The Caltopo map object that is associated with the course.
     :param datetime.datetime start_time: The start time of the race.
     :param str data_store: The filepath in which to store data.
     :param Course course: A course object representing the race.
@@ -81,6 +82,7 @@ class Race:
 
     def __init__(
         self,
+        caltopo_map,
         start_time,
         data_store,
         course,
@@ -92,6 +94,7 @@ class Race:
         self.start_time = start_time
         self.started = False
         self.last_ping_raw = {}
+        self.map_url = caltopo_map.url
         self.restore()
 
     @property
@@ -124,6 +127,7 @@ class Race:
             "est_finish_date": self.runner.estimated_finish_date.strftime("%m-%d %H:%M"),
             "est_finish_time": format_duration(self.runner.estimated_finish_time),
             "start_time": self.start_time.strftime("%m-%d %H:%M"),
+            "map_url": self.map_url,
         }
 
     def save(self) -> None:
