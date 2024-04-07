@@ -146,6 +146,7 @@ class CaltopoMarker(CaltopoFeature):
         self.rotation = self.properties.get("marker-rotation", 0)
         self.size = self.properties.get("marker-size", "1")
         self.symbol = self.properties.get("marker-symbol")
+        self.gmaps_url = f"http://maps.google.com/maps?z=12&t=m&q=loc:{self.coordinates[1]}+{self.coordinates[0]}"
 
     @property
     def as_json(self) -> dict:
