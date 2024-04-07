@@ -124,11 +124,22 @@ class Race:
             "mile_mark": round(self.runner.mile_mark, 2),
             "elapsed_time": format_duration(self.runner.elapsed_time),
             "last_update": self.runner.last_ping.timestamp.strftime("%m-%d %H:%M"),
-            "pings": self.runner.pings,
             "est_finish_date": self.runner.estimated_finish_date.strftime("%m-%d %H:%M"),
             "est_finish_time": format_duration(self.runner.estimated_finish_time),
             "start_time": self.start_time.strftime("%m-%d %H:%M"),
             "map_url": self.map_url,
+            "aid_stations": self.course.aid_stations,
+            "debug_data": {
+                "last_ping": self.runner.last_ping.as_json,
+                "estimated_course_location": self.runner.estimate_marker.coordinates[::-1],
+                "pings": self.runner.pings,
+                "course": {
+                    "distance": self.course.route.length,
+                    "aid_stations": len(self.course.aid_stations),
+                    "timezone": str(self.course.timezone),
+                    "points": len(self.course.route.points),
+                },
+            },
         }
 
     def save(self) -> None:
@@ -151,7 +162,8 @@ class Race:
                 data = json.load(f)
                 self.runner.pace = data.get("pace", 10)
                 self.runner.pings = data.get("pings", 0)
-                self.runner.last_ping = Ping(data.get("last_ping_raw", {}), self.course.timezone)
+                self.runner.last_ping = Ping(data.get("last_ping", {}), self.course.timezone)
+                print(f"restore success: {self.runner.last_ping}")
 
     def ingest_ping(self, ping_data: dict) -> None:
         """
@@ -284,7 +296,7 @@ class Runner:
         then return the point with the highest probability.
 
         :param Route route: The route of the course.
-        :return tuple: The most probable mile mark and the coordinates of that mile mark on the 
+        :return tuple: The most probable mile mark and the coordinates of that mile mark on the
         course.
         """
         _, matched_indices = route.kdtree.query(self.last_ping.latlon, k=5)

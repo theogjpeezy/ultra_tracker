@@ -68,3 +68,23 @@ class Ping:
 
     def __str__(self):
         return f"PING {self.timestamp} | {self.heading}° | {self.latlon}"
+
+    @property
+    def as_json(self) -> dict:
+        """
+        A json representation of the ping object.
+
+        :return dict: The dict of the ping object.
+        """
+        return {
+            "status": self._event.get("status", {}),
+            "timestamp": self.timestamp,
+            "timestamp_raw": self._event.get("timeStamp", 0),
+            "heading": self.heading,
+            "latlon": self.latlon,
+            "lonlat": self.lonlat,
+            "altitude": self.altitude,
+            "gps_fix": self.gps_fix,
+            "message_code": self.message_code,
+            "speed": self.speed,
+        }
