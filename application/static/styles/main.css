@@ -40,6 +40,21 @@
   color: white;
 }
 
+.aid-table th,
+.aid-table td {
+  padding: 10px;
+  text-align: left;
+  font-size: 14px;
+  background-color: white;
+  color: black;
+}
+
+.aid-table th {
+  background-color: #081839;
+  color: white;
+}
+
+
 
 .tab-content {
     display: none;
