@@ -1,25 +1,51 @@
+/* Updated styles for better readability and contrast */
+.nav-wrapper {
+  background-color: #081839;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+#nav-mobile {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0; /* Reset margin to remove default margin */
+  padding: 0; /* Reset padding to remove default padding */
+}
+
+#nav-mobile li {
+  list-style-type: none;
+  margin-right: 10px;
+  font-size: 55px; /* Increase font size for better readability */
+}
+
+
+
+.page-header {
+  color: #081839;
+}
+
+
 .stats-table th,
 .stats-table td {
-    font-size: 20px;
+  padding: 10px;
+  text-align: left;
+  font-size: 18px;
+  background-color: white;
+  color: black;
 }
+
+.stats-table th {
+  background-color: #081839;
+  color: white;
+}
+
+
 .tab-content {
     display: none;
 }
 .tab-content.active {
     display: block;
-}
-.nav-wrapper {
-    padding-left: 16px;
-    padding-right: 16px;
-}
-#nav-mobile {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-}
-#nav-mobile li {
-    list-style-type: none;
-    margin-right: 16px;
 }
 body, html {
     margin: 0;
@@ -47,7 +73,7 @@ nav {
 /* Style for active tab */
 .tab-link.active {
     font-weight: bold; /* Change font weight */
-    color: teal; /* Change font color */
+    color: white; /* Change font color */
 }
 
 /* Style for tab highlight */
@@ -55,28 +81,38 @@ nav {
     content: ''; /* Add a pseudo-element for the highlight */
     display: block;
     width: 100%;
-    height: 3px; /* Height of the highlight */
-    background-color: teal; /* Color of the highlight */
+    height: 4px; /* Height of the highlight */
+    background-color: #23ce00; /* Color of the highlight */
 }
 /* CSS to remove underline from links */
 nav ul li a {
   text-decoration: none;
 }
+nav ul li a {
+  font-size: 20px;
+}
+
 /* Style for accordion */
 .accordion {
     width: 100%;
 }
 
 .accordion-item {
-    margin-bottom: 10px;
+  font-size: 16px;
+  margin-bottom: 10px;
 }
 
 .accordion-button {
-    width: 100%;
-    text-align: left;
-    background-color: #f5f5f5;
+  width: 100%;
+  text-align: left;
+  background-color: #23ce00;
 }
 
 .accordion-body {
-    padding: 10px;
+  padding: 10px;
+}
+
+.accordion-button {
+  font-weight: bold;
+  font-size: 16px;
 }

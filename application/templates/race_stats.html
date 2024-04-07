@@ -11,15 +11,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <title>Ultra Tracker</title>
 </head>
-<body class="blue lighten-5">
+<body>
   <nav>
-    <div class="nav-wrapper teal lighten-2">
+    <div class="nav-wrapper">
       <ul id="nav-mobile">
         <li>
           <a href="#stats" class="tab-link">Stats</a>
         </li>
         <li>
-          <a href="#aid" class="tab-link">Aid Stations</a>
+          <a href="#aid" class="tab-link">Aid</a>
         </li>
         <li>
           <a href="#map" class="tab-link">Map</a>
@@ -31,10 +31,10 @@
     </div>
   </nav>
   <div id="stats" class="container tab-content" style="padding-top: 64px;">
-    <h1 class="teal-text">Race Stats</h1>
-    <table class="striped responsive-table stats-table">
+    <h1 class="page-header">Race Stats</h1>
+    <table class="responsive-table stats-table">
       <thead>
-        <tr class="teal lighten-2 white-text">
+        <tr>
           <th>Start Time</th>
           <th>Last Update</th>
           <th>Elapsed Time</th>
@@ -58,7 +58,7 @@
     </table>
   </div>
   <div id="aid" class="container tab-content" style="padding-top: 64px;">
-    <h1 class="teal-text">Aid Stations</h1>
+    <h1 class="page-header">Aid Stations</h1>
     <div class="accordion" id="accordionExample">
       {% for aid_station in (aid_stations | sort(attribute='mile_mark')) %}
       <div class="accordion-item">
@@ -79,7 +79,7 @@
     <iframe src="{{map_url}}" frameborder="0"></iframe>
   </div>
   <div id="nerds" class="container tab-content" style="padding-top: 64px;">
-    <h1 class="teal-text">Raw Data</h1>
+    <h1 class="page-header">Raw Data</h1>
     <pre><code id="json-data" class="language-json">
         {{ debug_data | tojson(indent=2) }}
       </code></pre>
