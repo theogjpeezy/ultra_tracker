@@ -4,6 +4,7 @@
 import datetime
 import json
 import os
+from math import atan2, cos, radians, sin, sqrt
 
 import numpy as np
 import pytz
@@ -26,6 +27,23 @@ def format_duration(duration: datetime.timedelta) -> str:
     minutes, remainder = divmod(remainder * 60, 1)
     seconds, _ = divmod(remainder * 60, 1)
     return f"{int(hours)}:{int(minutes):02}'{int(seconds):02}\""
+
+
+def format_distance(distance_ft: float) -> str:
+    """
+    Format a distance in feet into a human-readable format.
+
+    :param float distance_ft: The distance in feet.
+
+    :return str: A human-readable representation of the distance. If the distance is over 5280 feet,
+    it will be converted to miles with one decimal point, otherwise, it will be displayed in feet
+    with one decimal point.
+    """
+    if distance_ft >= 5280:
+        distance_mi = distance_ft / 5280
+        return f"{distance_mi:.1f} mi"
+    else:
+        return f"{distance_ft:.1f} ft"
 
 
 def convert_decimal_pace_to_pretty_format(decimal_pace: float) -> str:
@@ -67,6 +85,34 @@ def calculate_most_probable_mile_mark(
     # Find the mile mark with the highest probability
     most_probable_mile_mark = mile_marks[np.argmax(probabilities)]
     return most_probable_mile_mark
+
+
+def haversine_distance(coord1: list, coord2: list) -> float:
+    """
+    Calculate the Haversine distance between two points specified by their latitude and longitude coordinates.
+
+    :param list coord1: Latitude and longitude coordinates of the first point in the format
+    [latitude, longitude].
+    :param list coord2: Latitude and longitude coordinates of the second point in the format
+    [latitude, longitude].
+    :return float: The distance between the two points in feet.
+    """
+    # Radius of the Earth in kilometers
+    R = 6371.0
+    # Convert latitude and longitude from degrees to radians
+    lat1 = radians(coord1[0])
+    lon1 = radians(coord1[1])
+    lat2 = radians(coord2[0])
+    lon2 = radians(coord2[1])
+    # Compute the differences between latitudes and longitudes
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    # Haversine formula
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    distance_km = R * c
+    # Convert kilometers to feet (1 km = 3280.84 feet)
+    return distance_km * 3280.84
 
 
 class Race:
@@ -129,7 +175,13 @@ class Race:
             "start_time": self.start_time.strftime("%m-%d %H:%M"),
             "map_url": self.map_url,
             "aid_stations": self.course.aid_stations,
+            "course_deviation": format_distance(self.runner.course_deviation),
+            "deviation_background_color": 'green' if self.runner.course_deviation < 100 else \
+                'yellow' if 100 <= self.runner.course_deviation <= 150 else \
+                'orange' if 151 <= self.runner.course_deviation <= 200 else \
+                'red',
             "debug_data": {
+                "course_deviation": format_distance(self.runner.course_deviation),
                 "last_ping": self.runner.last_ping.as_json,
                 "estimated_course_location": self.runner.estimate_marker.coordinates[::-1],
                 "pings": self.runner.pings,
@@ -208,7 +260,7 @@ class Runner:
         self.started = False
         self.mile_mark = 0
         self.last_ping = Ping({}, pytz.timezone("Etc/GMT"))
-        self.marker = self.extract_marker(marker_name, caltopo_map)
+        self.marker, self.estimate_marker = self.extract_marker(marker_name, caltopo_map)
         self.pace = 10
         self.pings = 0
 
@@ -220,14 +272,16 @@ class Runner:
         :param CaltopoMap caltopo_map: The map object containing the markers.
         :return CaltopoMarker: The marker representing the runner.
         """
+        estimate_marker = None
+        true_marker = None
         for marker in caltopo_map.markers:
             if marker.title == f"{marker_name} (estimated)":
-                self.estimate_marker = marker
-                break
+                estimate_marker = marker
+            elif marker.title == marker_name:
+                true_marker = marker
 
-        for marker in caltopo_map.markers:
-            if marker.title == marker_name:
-                return marker
+        if estimate_marker and true_marker:
+            return true_marker, estimate_marker
         raise LookupError(
             f"no marker called '{marker_name}' found in markers: {caltopo_map.markers}"
         )
@@ -250,6 +304,19 @@ class Runner:
         :return None:
         """
         self.started = self.mile_mark > 0.11
+
+    @property
+    def course_deviation(self) -> float:
+        """
+        The difference (in feet) between the runner's true location and the course estimate.
+
+        :return float: The uncertainty in the location calculation.
+        """
+        return abs(
+            haversine_distance(
+                self.marker.coordinates[::-1], self.estimate_marker.coordinates[::-1]
+            )
+        )
 
     def check_if_finished(self, route) -> None:
         """

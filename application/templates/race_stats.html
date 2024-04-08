@@ -42,6 +42,7 @@
           <th>Avg Pace</th>
           <th>Est Finish Date</th>
           <th>Est Finish Time</th>
+          <th>Course Deviation</th>
         </tr>
       </thead>
       <tbody>
@@ -53,6 +54,7 @@
           <td>{{ avg_pace }}</td>
           <td>{{ est_finish_date }}</td>
           <td>{{ est_finish_time }}</td>
+          <td style="background-color:{{ deviation_background_color}}">{{ course_deviation }}</td>
         </tr>
       </tbody>
     </table>

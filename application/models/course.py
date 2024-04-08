@@ -109,15 +109,17 @@ class Course:
         # Map each marker's title to the object.
         title_to_marker = {marker.title: marker for marker in caltopo_map.markers}
         try:
-            aid_objs = sorted([
-                AidStation(
-                    title_to_marker[aid_station["name"]]._feature_dict,
-                    caltopo_map.map_id,
-                    caltopo_map.session_id,
-                    aid_station["mile_mark"],
-                )
-                for aid_station in aid_stations
-            ])
+            aid_objs = sorted(
+                [
+                    AidStation(
+                        title_to_marker[aid_station["name"]]._feature_dict,
+                        caltopo_map.map_id,
+                        caltopo_map.session_id,
+                        aid_station["mile_mark"],
+                    )
+                    for aid_station in aid_stations
+                ]
+            )
             prev_mile_mark = 0
             # Now define all of the distances to each aid.
             for aso in aid_objs:
