@@ -100,12 +100,28 @@ def transform_path(path_data: list, min_step_size: float, max_step_size: float) 
 
 
 class Course:
+    """
+    A course is a representation of the race's route, aid stations, and other physical attributes.
+
+    :param CaltopoMap caltopo_map: A CaltopoMap object containing the course and features.
+    :param list aid_stations: A list of dicts of the aid stations. This should include their name
+    and mile_mark.
+    :param str route_name: The name of the route in the map.
+    """
+
     def __init__(self, caltopo_map, aid_stations: list, route_name: str):
         self.aid_stations = self.extract_aid_stations(aid_stations, caltopo_map)
         self.route = self.extract_route(route_name, caltopo_map)
         self.timezone = get_timezone(self.route.start_location)
 
-    def extract_aid_stations(self, aid_stations: list, caltopo_map):
+    def extract_aid_stations(self, aid_stations: list, caltopo_map) -> list:
+        """
+        Finds each marker in the CaltopoMap and maps it to an aid station.
+
+        :param list aid_stations: A list of dicts of aid station names and mile marks.
+        :param CaltopoMap caltopo_map: A CaltopoMap object.
+        :return list: A list of AidStation objects making up the course.
+        """
         # Map each marker's title to the object.
         title_to_marker = {marker.title: marker for marker in caltopo_map.markers}
         try:
@@ -129,7 +145,14 @@ class Course:
         except KeyError as err:
             raise KeyError(f"aid station '{err.args[0]}' not found in {caltopo_map.markers}")
 
-    def extract_route(self, route_name: str, caltopo_map):
+    def extract_route(self, route_name: str, caltopo_map) -> Route:
+        """
+        Finds the route in the map and returns the object.
+
+        :param str route_name: The name of the route shape on the map.
+        :param CaltopoMap caltopo_map: A CaltopoMap object in which to search for the route.
+        :return Route: A Route object representing the course route.
+        """
         for shape in caltopo_map.shapes:
             if shape.title == route_name:
                 return Route(shape._feature_dict, caltopo_map.map_id, caltopo_map.session_id)
@@ -141,6 +164,10 @@ class Course:
 
 
 class AidStation(CaltopoMarker):
+    """
+    This special type of marker represents a race's aid station.
+    """
+
     def __init__(self, feature_dict: dict, map_id: str, session_id: str, mile_mark: float):
         super().__init__(feature_dict, map_id, session_id)
         self.mile_mark = mile_mark
@@ -148,14 +175,24 @@ class AidStation(CaltopoMarker):
         self.distance_to = 0
 
     @property
-    def aid_station_description(self):
+    def aid_station_description(self) -> str:
+        """
+        A human-friendly description for the aid station to be used in Caltopo.
+
+        :return str: A comment string for the Caltopo marker.
+        """
         return (
             f"𝗺𝗶𝗹𝗲 𝗺𝗮𝗿𝗸: {round(self.mile_mark, 2)}\n"
             f"𝗘𝗧𝗔: {self.estimated_arrival_time.strftime('%m-%d %H:%M')}\n"
         )
 
     def refresh(self, runner) -> None:
-        """ """
+        """
+        Updates the aid station marker on the map with the latest data.
+
+        :param Runner runner: A runner object.
+        :return None:
+        """
         miles_to_me = self.mile_mark - runner.mile_mark
         if miles_to_me < 0:
             # The runner has already passed this aid station.
@@ -171,6 +208,10 @@ class AidStation(CaltopoMarker):
 
 
 class Route(CaltopoShape):
+    """
+    This subclass of the CaltopoShape represents a race's route.
+    """
+
     def __init__(self, feature_dict: dict, map_id: str, session_id: str):
         super().__init__(feature_dict, map_id, session_id)
         # TODO this doesn't handle 3 long lists.

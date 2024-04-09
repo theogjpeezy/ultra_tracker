@@ -108,6 +108,14 @@ class CaltopoMap:
 
 
 class CaltopoFeature:
+    """
+    This represents a single feature object in Caltopo.
+
+    :param dict feature_dict: The raw dict of features from Caltopo.
+    :param str map_id: The map ID (UUID-like) from Caltopo.
+    :param str session_id: The auth token for Caltopo.
+    """
+
     feature_class = "Feature"
 
     def __init__(self, feature_dict: dict, map_id: str, session_id: str):
@@ -135,6 +143,10 @@ class CaltopoFeature:
 
 
 class CaltopoMarker(CaltopoFeature):
+    """
+    A Caltopo marker object.
+    """
+
     feature_class = "Marker"
 
     def __init__(self, feature_dict: dict, map_id: str, session_id: str):
@@ -150,7 +162,11 @@ class CaltopoMarker(CaltopoFeature):
 
     @property
     def as_json(self) -> dict:
-        """ """
+        """
+        Converts the marker to a dict.
+
+        :return dict: A dict representation of the marker object.
+        """
         return {
             "type": "Feature",
             "id": self.id,
@@ -194,6 +210,10 @@ class CaltopoMarker(CaltopoFeature):
 
 
 class CaltopoShape(CaltopoFeature):
+    """
+    A Caltopo shape object. This includes lines, areas, and more.
+    """
+
     feature_class = "Shape"
 
     def __init__(self, feature_dict: dict, map_id: str, session_id: str):
@@ -207,6 +227,10 @@ class CaltopoShape(CaltopoFeature):
 
 
 class CaltopoFolder(CaltopoFeature):
+    """
+    A Caltopo folder object.
+    """
+
     feature_class = "Folder"
 
     def __init__(self, feature_dict: dict, map_id: str, session_id: str):
