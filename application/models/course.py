@@ -145,7 +145,7 @@ class Course:
         except KeyError as err:
             raise KeyError(f"aid station '{err.args[0]}' not found in {caltopo_map.markers}")
 
-    def extract_route(self, route_name: str, caltopo_map) -> Route:
+    def extract_route(self, route_name: str, caltopo_map):
         """
         Finds the route in the map and returns the object.
 

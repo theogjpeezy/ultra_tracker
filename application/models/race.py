@@ -176,13 +176,13 @@ class Race:
             "map_url": self.map_url,
             "aid_stations": self.course.aid_stations,
             "course_deviation": format_distance(self.runner.course_deviation),
-            "deviation_background_color": "green"
+            "deviation_background_color": "#90EE90"
             if self.runner.course_deviation < 100
-            else "yellow"
+            else "#FAFAD2"
             if 100 <= self.runner.course_deviation <= 150
-            else "orange"
+            else "#FFD700"
             if 151 <= self.runner.course_deviation <= 200
-            else "red",
+            else "#FFC0CB",
             "debug_data": {
                 "course_deviation": format_distance(self.runner.course_deviation),
                 "last_ping": self.runner.last_ping.as_json,
