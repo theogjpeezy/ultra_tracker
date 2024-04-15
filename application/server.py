@@ -4,12 +4,11 @@ import argparse
 import datetime
 import json
 
-import yaml
 from flask import Flask, render_template, request
-from jinja2 import Environment, FileSystemLoader
 from models.caltopo import CaltopoMap
 from models.course import Course
 from models.race import Race, Runner
+from models.config import Config
 
 app = Flask(__name__)
 
@@ -27,26 +26,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "-c", required=True, type=str, dest="config", help="The config file for the event."
     )
+    
     return p.parse_args()
-
-
-def get_config_data(file_path: str) -> dict:
-    """
-    Reads in a yaml file and returns the dict.
-
-    :param str file_path: The path to the file.
-    :return dict: The parsed dict from the config file.
-    """
-    try:
-        with open(file_path, "r") as file:
-            yaml_content = yaml.safe_load(file)
-        return yaml_content
-    except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found.")
-        return None
-    except yaml.YAMLError as e:
-        print(f"Error: YAML parsing error in '{file_path}': {e}")
-        return None
 
 
 @app.route("/", methods=["GET"])
@@ -81,18 +62,18 @@ def post_data():
 
 # Read in the config file.
 args = parse_args()
-config_data = get_config_data(args.config)
+config = Config(args.config)
 # Create the objects to manage the race.
-caltopo_map = CaltopoMap(config_data["caltopo_map_id"], config_data["caltopo_session_id"])
+caltopo_map = CaltopoMap(config.caltopo_map_id, config.caltopo_session_id)
 print("created map object...")
-course = Course(caltopo_map, config_data["aid_stations"], config_data["route_name"])
+course = Course(caltopo_map, config.aid_stations, config.route_name)
 print("created course object...")
-runner = Runner(caltopo_map, config_data["tracker_marker_name"])
+runner = Runner(caltopo_map, config.tracker_marker_name)
 print("created runner object...")
 race = Race(
     caltopo_map,
     course.timezone.localize(
-        datetime.datetime.strptime(config_data["start_time"], "%Y-%m-%dT%H:%M:%S")
+        datetime.datetime.strptime(config.start_time, "%Y-%m-%dT%H:%M:%S")
     ),
     ".data_store.json",
     course,
@@ -100,7 +81,7 @@ race = Race(
 )
 print("created race object...")
 # TODO perform a test to see if it authenticates
-app.config["UT_GARMIN_API_TOKEN"] = config_data["garmin_api_token"]
+app.config["UT_GARMIN_API_TOKEN"] = config.garmin_api_token
 app.config["UT_RACE"] = race
 print("performing authentication test...")
 if not caltopo_map.test_authentication():
